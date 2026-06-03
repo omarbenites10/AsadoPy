@@ -1,26 +1,96 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --bg: 30 20% 98%;
+    --fg: 20 14% 10%;
+    --card-bg: 0 0% 100%;
+    --card-fg: 20 14% 10%;
+    --primary: 24 95% 53%;
+    --primary-fg: 0 0% 100%;
+    --secondary: 30 10% 94%;
+    --secondary-fg: 20 14% 20%;
+    --muted: 30 10% 94%;
+    --muted-fg: 20 10% 45%;
+    --accent: 38 92% 50%;
+    --accent-fg: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-fg: 0 0% 100%;
+    --border: 20 10% 88%;
+    --input-bg: 0 0% 100%;
+    --ring: 24 95% 53%;
+    --radius: 0.75rem;
+    --success: 142 71% 45%;
+    --success-fg: 0 0% 100%;
+  }
+
+  .dark {
+    --bg: 20 14% 6%;
+    --fg: 30 10% 95%;
+    --card-bg: 20 10% 10%;
+    --card-fg: 30 10% 95%;
+    --primary: 24 95% 53%;
+    --primary-fg: 0 0% 100%;
+    --secondary: 20 10% 16%;
+    --secondary-fg: 30 10% 85%;
+    --muted: 20 10% 16%;
+    --muted-fg: 20 10% 55%;
+    --accent: 38 92% 50%;
+    --accent-fg: 0 0% 100%;
+    --destructive: 0 75% 55%;
+    --destructive-fg: 0 0% 100%;
+    --border: 20 10% 18%;
+    --input-bg: 20 10% 12%;
+    --ring: 24 95% 53%;
+    --success: 142 71% 45%;
+    --success-fg: 0 0% 100%;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: hsl(var(--bg));
+    color: hsl(var(--fg));
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100dvh;
+    overscroll-behavior: none;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+.pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 0px);
+}
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 2px;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
 }
