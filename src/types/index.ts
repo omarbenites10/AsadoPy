@@ -37,6 +37,7 @@ export interface Contact {
   drinksAlcohol: boolean
   alcoholLevel: AlcoholLevel
   phone: string
+  isFavorite: boolean
   createdAt: number
 }
 

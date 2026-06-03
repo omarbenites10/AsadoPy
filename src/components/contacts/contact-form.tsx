@@ -72,6 +72,7 @@ export function ContactForm({
       drinksAlcohol: drinks,
       alcoholLevel: drinks ? alcoholLevel : 'normal',
       phone: phone.trim(),
+      isFavorite: initialData?.isFavorite ?? false,
     })
   }
 

@@ -17,7 +17,7 @@ import { useContacts } from '@/hooks/useContacts'
 import { toast } from '@/hooks/useToast'
 
 export function ContactList() {
-  const { contacts, addContact, updateContact, deleteContact, searchContacts } = useContacts()
+  const { contacts, addContact, updateContact, deleteContact, toggleFavorite, searchContacts } = useContacts()
   const [search, setSearch] = useState('')
   const [addOpen, setAddOpen] = useState(false)
 
@@ -91,6 +91,7 @@ export function ContactList() {
                 deleteContact(id)
                 toast({ title: 'Contacto eliminado', variant: 'default' })
               }}
+              onToggleFavorite={toggleFavorite}
             />
           ))}
         </AnimatePresence>

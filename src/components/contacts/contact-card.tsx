@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Pencil, Trash2, Phone } from 'lucide-react'
+import { Pencil, Trash2, Phone, Star } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -28,6 +28,7 @@ interface ContactCardProps {
   contact: Contact
   onEdit: (id: string, data: Partial<Omit<Contact, 'id' | 'createdAt'>>) => void
   onDelete: (id: string) => void
+  onToggleFavorite?: (id: string) => void
   selectable?: boolean
   selected?: boolean
   onSelect?: (contact: Contact) => void
@@ -37,6 +38,7 @@ export function ContactCard({
   contact,
   onEdit,
   onDelete,
+  onToggleFavorite,
   selectable,
   selected,
   onSelect,
@@ -71,6 +73,9 @@ export function ContactCard({
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
+            {contact.isFavorite && (
+              <Star className="h-3.5 w-3.5 shrink-0 fill-amber-400 text-amber-400" />
+            )}
             <span className="font-semibold text-sm truncate">{contact.name}</span>
             <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${SEX_COLORS[contact.sex]}`}>
               {SEX_LABELS[contact.sex]}
@@ -95,6 +100,17 @@ export function ContactCard({
 
         {!selectable && (
           <div className="flex items-center gap-1 shrink-0">
+            {onToggleFavorite && (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={contact.isFavorite ? 'Quitar de favoritos' : 'Marcar como favorito'}
+                onClick={(e) => { e.stopPropagation(); onToggleFavorite(contact.id) }}
+                className={contact.isFavorite ? 'text-amber-400' : 'text-[hsl(var(--muted-fg))]'}
+              >
+                <Star className={`h-4 w-4 ${contact.isFavorite ? 'fill-amber-400' : ''}`} />
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="icon-sm"
