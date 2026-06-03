@@ -26,13 +26,6 @@ export function useConsumptionConfig() {
     [setConfig]
   )
 
-  const updateCerveza = useCallback(
-    (values: Partial<SexConsumption>) => {
-      setConfig((prev) => ({ ...prev, cerveza: { ...prev.cerveza, ...values } }))
-    },
-    [setConfig]
-  )
-
   const updateBeer = useCallback(
     (values: Partial<BeerConfig>) => {
       setConfig((prev) => ({ ...prev, beer: { ...prev.beer, ...values } }))
@@ -44,12 +37,19 @@ export function useConsumptionConfig() {
     setConfig(DEFAULT_CONSUMPTION_CONFIG)
   }, [setConfig])
 
+  const loadConfig = useCallback(
+    (newConfig: ConsumptionConfig) => {
+      setConfig(newConfig)
+    },
+    [setConfig]
+  )
+
   return {
     config,
     updateCarne,
     updateChorizo,
-    updateCerveza,
     updateBeer,
     resetToDefaults,
+    loadConfig,
   }
 }

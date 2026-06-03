@@ -4,9 +4,12 @@ import type {
   ShoppingList,
   CarbonResult,
   CervezaResult,
+  CervezaBreakdownItem,
+  AlcoholLevel,
   Sex,
   SexConsumption,
 } from '@/types'
+import { ALCOHOL_LEVEL_LITERS } from '@/types'
 
 function getGrams(sex: Sex, values: SexConsumption): number {
   if (sex === 'hombre') return values.hombre
@@ -55,10 +58,22 @@ function calculateCerveza(
   config: ConsumptionConfig
 ): CervezaResult {
   const drinkers = participants.filter((p) => p.drinksAlcohol)
-  const totalLiters = drinkers.reduce(
-    (sum, p) => sum + getGrams(p.sex, config.cerveza),
-    0
-  )
+
+  const levelCounts: Partial<Record<AlcoholLevel, number>> = {}
+  for (const p of drinkers) {
+    const lvl = p.alcoholLevel ?? 'normal'
+    levelCounts[lvl] = (levelCounts[lvl] ?? 0) + 1
+  }
+
+  const breakdown: CervezaBreakdownItem[] = (
+    Object.entries(levelCounts) as [AlcoholLevel, number][]
+  ).map(([level, count]) => ({
+    level,
+    count,
+    liters: count * ALCOHOL_LEVEL_LITERS[level],
+  }))
+
+  const totalLiters = breakdown.reduce((sum, b) => sum + b.liters, 0)
 
   const capacityLiters =
     config.beer.unit === 'ml'
@@ -74,6 +89,7 @@ function calculateCerveza(
     containerLabel: config.beer.containerLabel,
     capacity: config.beer.capacity,
     unit: config.beer.unit,
+    breakdown,
   }
 }
 
@@ -136,7 +152,10 @@ function calculateBebidasSinAlcohol(participants: Participant[]): number {
   return Math.ceil(liters)
 }
 
-function calculateHielo(cerveraLiters: number, bebidasLiters: number): { bags: number; kg: number } {
+function calculateHielo(
+  cerveraLiters: number,
+  bebidasLiters: number
+): { bags: number; kg: number } {
   const totalLiters = cerveraLiters + bebidasLiters
   const kg = totalLiters / 2
   const bags = Math.ceil(kg / 3)
@@ -167,6 +186,7 @@ export function calculateShoppingList(
         containerLabel: config.beer.containerLabel,
         capacity: config.beer.capacity,
         unit: config.beer.unit,
+        breakdown: [],
       },
       mandioca: { bags: 0, kg: 0 },
       pan: { kg: 0.5 },

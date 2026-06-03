@@ -23,8 +23,15 @@ import {
 import { ContactCard } from '@/components/contacts/contact-card'
 import { ParticipantCard } from './participant-card'
 import { useContacts } from '@/hooks/useContacts'
-import type { Contact, Participant, Sex } from '@/types'
-import { SEX_LABELS } from '@/types'
+import type { Contact, Participant, Sex, AlcoholLevel } from '@/types'
+import { SEX_LABELS, ALCOHOL_LEVEL_LABELS, ALCOHOL_LEVEL_DESCRIPTIONS } from '@/types'
+
+const ALCOHOL_LEVELS: AlcoholLevel[] = ['tranquilo', 'normal', 'fuerte']
+const LEVEL_EMOJI: Record<AlcoholLevel, string> = {
+  tranquilo: '🍺',
+  normal: '🍺🍺',
+  fuerte: '🍺🍺🍺',
+}
 
 interface StepParticipantsProps {
   participants: Participant[]
@@ -50,10 +57,10 @@ export function StepParticipants({
   const [manualOpen, setManualOpen] = useState(false)
   const [contactSearch, setContactSearch] = useState('')
 
-  // Manual form state
   const [manualName, setManualName] = useState('')
   const [manualSex, setManualSex] = useState<Sex>('hombre')
   const [manualDrinks, setManualDrinks] = useState(true)
+  const [manualLevel, setManualLevel] = useState<AlcoholLevel>('normal')
   const [manualError, setManualError] = useState('')
 
   const filteredContacts = contacts.filter((c) =>
@@ -61,19 +68,15 @@ export function StepParticipants({
   )
 
   function handleAddManual() {
-    if (!manualName.trim()) {
-      setManualError('El nombre es requerido')
-      return
-    }
+    if (!manualName.trim()) { setManualError('El nombre es requerido'); return }
+    const drinks = manualSex === 'nino' ? false : manualDrinks
     onAddManual({
       name: manualName.trim(),
       sex: manualSex,
-      drinksAlcohol: manualSex === 'nino' ? false : manualDrinks,
+      drinksAlcohol: drinks,
+      alcoholLevel: drinks ? manualLevel : 'normal',
     })
-    setManualName('')
-    setManualSex('hombre')
-    setManualDrinks(true)
-    setManualError('')
+    resetManualForm()
     setManualOpen(false)
   }
 
@@ -82,9 +85,13 @@ export function StepParticipants({
     if (v === 'nino') setManualDrinks(false)
   }
 
+  function resetManualForm() {
+    setManualName(''); setManualSex('hombre'); setManualDrinks(true)
+    setManualLevel('normal'); setManualError('')
+  }
+
   return (
     <div className="flex flex-col gap-4">
-      {/* Add buttons */}
       <div className="grid grid-cols-2 gap-3">
         <Button
           variant="outline"
@@ -108,7 +115,6 @@ export function StepParticipants({
         </Button>
       </div>
 
-      {/* Participants list */}
       {participants.length === 0 ? (
         <motion.div
           initial={{ opacity: 0 }}
@@ -118,43 +124,28 @@ export function StepParticipants({
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[hsl(var(--secondary))]">
             <Users className="h-7 w-7 text-[hsl(var(--muted-fg))]" />
           </div>
-          <div>
-            <p className="font-semibold">Sin participantes</p>
-            <p className="text-sm text-[hsl(var(--muted-fg))] mt-1">
-              Agrega personas al asado para calcular los insumos
-            </p>
-          </div>
+          <p className="font-semibold">Sin participantes</p>
+          <p className="text-sm text-[hsl(var(--muted-fg))]">
+            Agrega personas al asado para calcular los insumos
+          </p>
         </motion.div>
       ) : (
         <>
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold text-[hsl(var(--muted-fg))]">
-              {participants.length} participante{participants.length !== 1 ? 's' : ''}
-            </span>
-          </div>
+          <span className="text-sm font-semibold text-[hsl(var(--muted-fg))]">
+            {participants.length} participante{participants.length !== 1 ? 's' : ''}
+          </span>
           <AnimatePresence mode="popLayout">
             {participants.map((p) => (
-              <ParticipantCard
-                key={p.id}
-                participant={p}
-                onUpdate={onUpdate}
-                onRemove={onRemove}
-              />
+              <ParticipantCard key={p.id} participant={p} onUpdate={onUpdate} onRemove={onRemove} />
             ))}
           </AnimatePresence>
         </>
       )}
 
-      {/* Next button */}
       {participants.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="sticky bottom-20 pt-2"
-        >
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="sticky bottom-20 pt-2">
           <Button className="w-full h-12 text-base" onClick={onNext}>
-            Configurar consumos
-            <ChevronRight className="h-5 w-5" />
+            Configurar consumos <ChevronRight className="h-5 w-5" />
           </Button>
         </motion.div>
       )}
@@ -162,19 +153,11 @@ export function StepParticipants({
       {/* Select from contacts dialog */}
       <Dialog open={contactsOpen} onOpenChange={setContactsOpen}>
         <DialogContent className="max-h-[80vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle>Seleccionar contactos</DialogTitle>
-          </DialogHeader>
-          <Input
-            placeholder="Buscar..."
-            value={contactSearch}
-            onChange={(e) => setContactSearch(e.target.value)}
-          />
+          <DialogHeader><DialogTitle>Seleccionar contactos</DialogTitle></DialogHeader>
+          <Input placeholder="Buscar..." value={contactSearch} onChange={(e) => setContactSearch(e.target.value)} />
           <div className="flex flex-col gap-2 overflow-y-auto flex-1 mt-2">
             {filteredContacts.length === 0 ? (
-              <p className="text-center text-sm text-[hsl(var(--muted-fg))] py-4">
-                No se encontraron contactos
-              </p>
+              <p className="text-center text-sm text-[hsl(var(--muted-fg))] py-4">No se encontraron contactos</p>
             ) : (
               filteredContacts.map((contact) => (
                 <ContactCard
@@ -182,49 +165,36 @@ export function StepParticipants({
                   contact={contact}
                   selectable
                   selected={isContactSelected(contact.id)}
-                  onSelect={(c) => {
-                    if (!isContactSelected(c.id)) onAddFromContact(c)
-                  }}
+                  onSelect={(c) => { if (!isContactSelected(c.id)) onAddFromContact(c) }}
                   onEdit={() => {}}
                   onDelete={() => {}}
                 />
               ))
             )}
           </div>
-          <Button onClick={() => setContactsOpen(false)} className="mt-2">
-            Listo
-          </Button>
+          <Button onClick={() => setContactsOpen(false)} className="mt-2">Listo</Button>
         </DialogContent>
       </Dialog>
 
       {/* Manual participant dialog */}
-      <Dialog open={manualOpen} onOpenChange={setManualOpen}>
+      <Dialog open={manualOpen} onOpenChange={(o) => { setManualOpen(o); if (!o) resetManualForm() }}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Agregar participante</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Agregar participante</DialogTitle></DialogHeader>
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <Label>Nombre *</Label>
               <Input
                 placeholder="Ej: Pedro"
                 value={manualName}
-                onChange={(e) => {
-                  setManualName(e.target.value)
-                  if (manualError) setManualError('')
-                }}
+                onChange={(e) => { setManualName(e.target.value); if (manualError) setManualError('') }}
                 aria-invalid={!!manualError}
               />
-              {manualError && (
-                <p className="text-xs text-[hsl(var(--destructive))]">{manualError}</p>
-              )}
+              {manualError && <p className="text-xs text-[hsl(var(--destructive))]">{manualError}</p>}
             </div>
             <div className="flex flex-col gap-1.5">
               <Label>Sexo</Label>
               <Select value={manualSex} onValueChange={(v) => handleManualSexChange(v as Sex)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {(Object.keys(SEX_LABELS) as Sex[]).map((s) => (
                     <SelectItem key={s} value={s}>{SEX_LABELS[s]}</SelectItem>
@@ -232,27 +202,41 @@ export function StepParticipants({
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-center justify-between rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] px-4 py-3">
-              <span className="text-sm font-medium">Consume alcohol</span>
-              <Switch
-                checked={manualDrinks}
-                onCheckedChange={setManualDrinks}
-                disabled={manualSex === 'nino'}
-              />
+
+            <div className="flex flex-col gap-3 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] p-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Consume alcohol</span>
+                <Switch checked={manualDrinks} onCheckedChange={setManualDrinks} disabled={manualSex === 'nino'} />
+              </div>
+              {manualDrinks && manualSex !== 'nino' && (
+                <div className="flex flex-col gap-2 pt-2 border-t border-[hsl(var(--border))]">
+                  <Label className="text-xs text-[hsl(var(--muted-fg))]">Nivel de cerveza</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {ALCOHOL_LEVELS.map((level) => (
+                      <button
+                        key={level}
+                        type="button"
+                        onClick={() => setManualLevel(level)}
+                        className={`flex flex-col items-center gap-1 rounded-xl border-2 p-2 text-center transition-all ${
+                          manualLevel === level
+                            ? 'border-[hsl(var(--primary))] bg-orange-50 dark:bg-orange-950/30'
+                            : 'border-[hsl(var(--border))] bg-[hsl(var(--card-bg))]'
+                        }`}
+                      >
+                        <span className="text-sm">{LEVEL_EMOJI[level]}</span>
+                        <span className="text-xs font-semibold">{ALCOHOL_LEVEL_LABELS[level]}</span>
+                        <span className="text-xs text-[hsl(var(--muted-fg))]">{ALCOHOL_LEVEL_DESCRIPTIONS[level]}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
+
             <div className="flex gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => {
-                setManualOpen(false)
-                setManualName('')
-                setManualSex('hombre')
-                setManualDrinks(true)
-                setManualError('')
-              }}>
-                Cancelar
-              </Button>
+              <Button variant="outline" className="flex-1" onClick={() => { setManualOpen(false); resetManualForm() }}>Cancelar</Button>
               <Button className="flex-1" onClick={handleAddManual}>
-                <Plus className="h-4 w-4" />
-                Agregar
+                <Plus className="h-4 w-4" /> Agregar
               </Button>
             </div>
           </div>

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Pencil, Trash2, Beer, BeerOff } from 'lucide-react'
+import { Pencil, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -20,13 +20,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import type { Participant, Sex } from '@/types'
-import { SEX_LABELS } from '@/types'
+import type { Participant, Sex, AlcoholLevel } from '@/types'
+import { SEX_LABELS, ALCOHOL_LEVEL_LABELS, ALCOHOL_LEVEL_DESCRIPTIONS } from '@/types'
 
 const SEX_COLORS = {
   hombre: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
   mujer: 'bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300',
   nino: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
+}
+
+const ALCOHOL_LEVELS: AlcoholLevel[] = ['tranquilo', 'normal', 'fuerte']
+const LEVEL_EMOJI: Record<AlcoholLevel, string> = {
+  tranquilo: '🍺',
+  normal: '🍺🍺',
+  fuerte: '🍺🍺🍺',
 }
 
 interface ParticipantCardProps {
@@ -40,6 +47,9 @@ export function ParticipantCard({ participant, onUpdate, onRemove }: Participant
   const [name, setName] = useState(participant.name)
   const [sex, setSex] = useState<Sex>(participant.sex)
   const [drinksAlcohol, setDrinksAlcohol] = useState(participant.drinksAlcohol)
+  const [alcoholLevel, setAlcoholLevel] = useState<AlcoholLevel>(
+    participant.alcoholLevel ?? 'normal'
+  )
 
   const initials = participant.name
     .split(' ')
@@ -50,10 +60,12 @@ export function ParticipantCard({ participant, onUpdate, onRemove }: Participant
 
   function handleSave() {
     if (!name.trim()) return
+    const drinks = sex === 'nino' ? false : drinksAlcohol
     onUpdate(participant.id, {
       name: name.trim(),
       sex,
-      drinksAlcohol: sex === 'nino' ? false : drinksAlcohol,
+      drinksAlcohol: drinks,
+      alcoholLevel: drinks ? alcoholLevel : 'normal',
     })
     setEditOpen(false)
   }
@@ -83,15 +95,11 @@ export function ParticipantCard({ participant, onUpdate, onRemove }: Participant
               {SEX_LABELS[participant.sex]}
             </span>
           </div>
-          <div className="flex items-center gap-1 mt-0.5">
-            {participant.drinksAlcohol ? (
-              <span className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                <Beer className="h-3 w-3" /> Toma alcohol
-              </span>
-            ) : (
-              <span className="text-xs text-[hsl(var(--muted-fg))] flex items-center gap-1">
-                <BeerOff className="h-3 w-3" /> No toma
-              </span>
+          <div className="text-xs text-[hsl(var(--muted-fg))] mt-0.5">
+            {participant.sex !== 'nino' && (
+              participant.drinksAlcohol
+                ? `${LEVEL_EMOJI[participant.alcoholLevel ?? 'normal']} ${ALCOHOL_LEVEL_LABELS[participant.alcoholLevel ?? 'normal']}`
+                : '🚫 No toma'
             )}
           </div>
         </div>
@@ -105,6 +113,7 @@ export function ParticipantCard({ participant, onUpdate, onRemove }: Participant
               setName(participant.name)
               setSex(participant.sex)
               setDrinksAlcohol(participant.drinksAlcohol)
+              setAlcoholLevel(participant.alcoholLevel ?? 'normal')
               setEditOpen(true)
             }}
           >
@@ -133,35 +142,57 @@ export function ParticipantCard({ participant, onUpdate, onRemove }: Participant
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <Label>Nombre</Label>
-              <Input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Nombre"
-              />
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nombre" />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label>Sexo</Label>
               <Select value={sex} onValueChange={(v) => handleSexChange(v as Sex)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {(Object.keys(SEX_LABELS) as Sex[]).map((s) => (
-                    <SelectItem key={s} value={s}>
-                      {SEX_LABELS[s]}
-                    </SelectItem>
+                    <SelectItem key={s} value={s}>{SEX_LABELS[s]}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-center justify-between rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] px-4 py-3">
-              <span className="text-sm font-medium">Consume alcohol</span>
-              <Switch
-                checked={drinksAlcohol}
-                onCheckedChange={setDrinksAlcohol}
-                disabled={sex === 'nino'}
-              />
+
+            <div className="flex flex-col gap-3 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] p-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Consume alcohol</span>
+                <Switch
+                  checked={drinksAlcohol}
+                  onCheckedChange={setDrinksAlcohol}
+                  disabled={sex === 'nino'}
+                />
+              </div>
+
+              {drinksAlcohol && sex !== 'nino' && (
+                <div className="flex flex-col gap-2 pt-2 border-t border-[hsl(var(--border))]">
+                  <Label className="text-xs text-[hsl(var(--muted-fg))]">Nivel de cerveza</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {ALCOHOL_LEVELS.map((level) => (
+                      <button
+                        key={level}
+                        type="button"
+                        onClick={() => setAlcoholLevel(level)}
+                        className={`flex flex-col items-center gap-1 rounded-xl border-2 p-2 text-center transition-all ${
+                          alcoholLevel === level
+                            ? 'border-[hsl(var(--primary))] bg-orange-50 dark:bg-orange-950/30'
+                            : 'border-[hsl(var(--border))] bg-[hsl(var(--card-bg))]'
+                        }`}
+                      >
+                        <span className="text-sm">{LEVEL_EMOJI[level]}</span>
+                        <span className="text-xs font-semibold">{ALCOHOL_LEVEL_LABELS[level]}</span>
+                        <span className="text-xs text-[hsl(var(--muted-fg))]">
+                          {ALCOHOL_LEVEL_DESCRIPTIONS[level]}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
+
             <div className="flex gap-3">
               <Button variant="outline" className="flex-1" onClick={() => setEditOpen(false)}>
                 Cancelar

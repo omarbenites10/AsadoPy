@@ -1,25 +1,13 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import {
-  ChevronLeft,
-  Share2,
-  RefreshCw,
-  ShoppingCart,
-  Beef,
-  Package,
-  Beer,
-  Flame,
-  Snowflake,
-  Salad,
-  Wind,
-} from 'lucide-react'
+import { ChevronLeft, Share2, RefreshCw, ShoppingCart, Save, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
 import type { ShoppingList } from '@/types'
+import { ALCOHOL_LEVEL_LABELS, WHATSAPP_NUMBER } from '@/types'
 
 interface ShoppingItemProps {
-  icon: React.ReactNode
+  icon: string
   label: string
   value: string
   subValue?: string
@@ -37,9 +25,7 @@ function ShoppingItem({ icon, label, value, subValue, delay = 0 }: ShoppingItemP
       <span className="text-xl mt-0.5 shrink-0">{icon}</span>
       <div className="flex-1 min-w-0">
         <span className="text-sm text-[hsl(var(--muted-fg))]">{label}</span>
-        {subValue && (
-          <p className="text-xs text-[hsl(var(--muted-fg))] mt-0.5">{subValue}</p>
-        )}
+        {subValue && <p className="text-xs text-[hsl(var(--muted-fg))] mt-0.5">{subValue}</p>}
       </div>
       <span className="font-bold text-sm text-right shrink-0">{value}</span>
     </motion.div>
@@ -50,57 +36,61 @@ interface StepShoppingListProps {
   list: ShoppingList
   onBack: () => void
   onReset: () => void
+  onSave: () => void
+  onFinish?: () => void
+  isSaved?: boolean
+  isFinished?: boolean
 }
 
 function formatKg(kg: number): string {
   return `${Number.isInteger(kg * 10) ? kg.toFixed(1) : kg} kg`
 }
 
-export function StepShoppingList({ list, onBack, onReset }: StepShoppingListProps) {
+export function StepShoppingList({
+  list,
+  onBack,
+  onReset,
+  onSave,
+  onFinish,
+  isSaved = false,
+  isFinished = false,
+}: StepShoppingListProps) {
   const {
-    carne,
-    chorizo,
-    cerveza,
-    mandioca,
-    pan,
-    carbon,
-    panDeAjo,
-    sopaParaguaya,
-    hielo,
-    limon,
-    bebidasSinAlcohol,
-    mbeju,
-    totalParticipants,
-    drinkers,
-    nonDrinkers,
+    carne, chorizo, cerveza, mandioca, pan, carbon, panDeAjo,
+    sopaParaguaya, hielo, limon, bebidasSinAlcohol, mbeju,
+    totalParticipants, drinkers, nonDrinkers,
   } = list
 
   const capacityDisplay = cerveza.unit === 'ml'
     ? `${cerveza.capacity} ml`
     : `${cerveza.capacity} L`
 
+  const carbonParts: string[] = []
+  if (carbon.bags5kg > 0) carbonParts.push(`${carbon.bags5kg} bolsa${carbon.bags5kg !== 1 ? 's' : ''} de 5 kg`)
+  if (carbon.bags3kg > 0) carbonParts.push(`${carbon.bags3kg} bolsa${carbon.bags3kg !== 1 ? 's' : ''} de 3 kg`)
+
   function buildShareText(): string {
     const lines = [
-      '🔥 Lista de compras - AsadoPy',
+      '🔥 *Lista de compras - AsadoPy*',
       `👥 ${totalParticipants} persona${totalParticipants !== 1 ? 's' : ''}`,
       '',
       `🥩 Carne: ${formatKg(carne.kg)}`,
       `🌭 Chorizo: ${formatKg(chorizo.kg)}`,
     ]
     if (drinkers > 0) {
-      lines.push(`🍺 Cerveza: ${cerveza.liters} litros (${cerveza.units} ${cerveza.containerLabel} de ${capacityDisplay})`)
+      lines.push(`🍺 Cerveza: ${cerveza.liters} litros (${cerveza.units} ${cerveza.containerLabel}${cerveza.units !== 1 ? 's' : ''} de ${capacityDisplay})`)
+      if (cerveza.breakdown.length > 0) {
+        cerveza.breakdown.forEach(b => {
+          lines.push(`   - ${ALCOHOL_LEVEL_LABELS[b.level]}: ${b.count} persona${b.count !== 1 ? 's' : ''} × ${b.liters / b.count}L = ${b.liters}L`)
+        })
+      }
     }
     lines.push(
       `🫙 Mandioca: ${mandioca.bags} bolsa${mandioca.bags !== 1 ? 's' : ''} de 1 kg`,
       `🍞 Pan: ${formatKg(pan.kg)}`,
-    )
-    const carbonParts = []
-    if (carbon.bags5kg > 0) carbonParts.push(`${carbon.bags5kg} bolsa${carbon.bags5kg !== 1 ? 's' : ''} de 5 kg`)
-    if (carbon.bags3kg > 0) carbonParts.push(`${carbon.bags3kg} bolsa${carbon.bags3kg !== 1 ? 's' : ''} de 3 kg`)
-    lines.push(`⚫ Carbón: ${carbonParts.join(' + ')}`)
-    lines.push(
-      `🧄 Pan de ajo: ${panDeAjo.packages} paquete${panDeAjo.packages !== 1 ? 's' : ''}`,
-      `🫓 Sopa paraguaya: ${sopaParaguaya.packages} paquete${sopaParaguaya.packages !== 1 ? 's' : ''}`,
+      `⚫ Carbón: ${carbonParts.join(' + ')}`,
+      `🧄 Pan de ajo: ${panDeAjo.packages} paquete${panDeAjo.packages !== 1 ? 's' : ''} de 400 g`,
+      `🫓 Sopa paraguaya: ${sopaParaguaya.packages} paquete${sopaParaguaya.packages !== 1 ? 's' : ''} de 1 kg`,
       `🧊 Hielo: ${hielo.bags} bolsa${hielo.bags !== 1 ? 's' : ''} de 3 kg`,
       `🍋 Limón: ${limon.units} unidades`,
     )
@@ -108,36 +98,30 @@ export function StepShoppingList({ list, onBack, onReset }: StepShoppingListProp
       lines.push(`🥤 Bebidas sin alcohol: ${bebidasSinAlcohol.liters} litros`)
     }
     lines.push(
-      `🥐 Mbeju: ${mbeju.packages} paquete${mbeju.packages !== 1 ? 's' : ''}`,
+      `🥐 Mbeju: ${mbeju.packages} paquete${mbeju.packages !== 1 ? 's' : ''} de 1 kg`,
       '',
-      '🥗 Ensalada: Llevar ensalada. Se recomienda que alguien del grupo la prepare.',
+      '🥗 _Llevar ensalada. Se recomienda que alguien del grupo la prepare._',
       '',
-      'Calculado con AsadoPy 🔥',
+      '🔥 Calculado con AsadoPy',
     )
     return lines.join('\n')
   }
 
-  async function handleShare() {
+  function handleShareWhatsApp() {
     const text = buildShareText()
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: 'Lista de compras - AsadoPy', text })
-      } catch {
-        await navigator.clipboard.writeText(text)
-      }
-    } else {
-      await navigator.clipboard.writeText(text)
-      alert('Lista copiada al portapapeles')
-    }
+    const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`
+    window.open(url, '_blank', 'noopener,noreferrer')
   }
 
-  const carbonParts: string[] = []
-  if (carbon.bags5kg > 0) carbonParts.push(`${carbon.bags5kg} bolsa${carbon.bags5kg !== 1 ? 's' : ''} de 5 kg`)
-  if (carbon.bags3kg > 0) carbonParts.push(`${carbon.bags3kg} bolsa${carbon.bags3kg !== 1 ? 's' : ''} de 3 kg`)
+  const cervevaBreakdownStr = cerveza.breakdown.length > 0
+    ? cerveza.breakdown
+        .map(b => `${b.count} ${ALCOHOL_LEVEL_LABELS[b.level]}${b.count !== 1 ? 's' : ''}`)
+        .join(', ')
+    : undefined
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Header summary */}
+      {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -146,6 +130,11 @@ export function StepShoppingList({ list, onBack, onReset }: StepShoppingListProp
         <div className="flex items-center gap-2 mb-1">
           <ShoppingCart className="h-5 w-5" />
           <span className="font-bold text-lg">Lista de compras</span>
+          {isFinished && (
+            <span className="ml-auto flex items-center gap-1 text-sm bg-white/20 rounded-full px-2 py-0.5">
+              <CheckCircle className="h-3.5 w-3.5" /> Finalizado
+            </span>
+          )}
         </div>
         <p className="text-orange-100 text-sm">
           {totalParticipants} persona{totalParticipants !== 1 ? 's' : ''}
@@ -154,41 +143,21 @@ export function StepShoppingList({ list, onBack, onReset }: StepShoppingListProp
         </p>
       </motion.div>
 
-      {/* Shopping items card */}
+      {/* Items */}
       <div className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card-bg))] divide-y divide-[hsl(var(--border))] px-5">
-        <ShoppingItem
-          icon="🥩"
-          label="Carne"
-          value={formatKg(carne.kg)}
-          delay={0.05}
-        />
-        <ShoppingItem
-          icon="🌭"
-          label="Chorizo"
-          value={formatKg(chorizo.kg)}
-          delay={0.08}
-        />
+        <ShoppingItem icon="🥩" label="Carne" value={formatKg(carne.kg)} delay={0.05} />
+        <ShoppingItem icon="🌭" label="Chorizo" value={formatKg(chorizo.kg)} delay={0.08} />
         {drinkers > 0 && (
           <ShoppingItem
             icon="🍺"
             label="Cerveza"
             value={`${cerveza.liters} litros`}
-            subValue={`${cerveza.units} ${cerveza.containerLabel}${cerveza.units !== 1 ? 's' : ''} de ${capacityDisplay}`}
+            subValue={`${cerveza.units} ${cerveza.containerLabel}${cerveza.units !== 1 ? 's' : ''} de ${capacityDisplay}${cervevaBreakdownStr ? ` · ${cervevaBreakdownStr}` : ''}`}
             delay={0.11}
           />
         )}
-        <ShoppingItem
-          icon="🫙"
-          label="Mandioca"
-          value={`${mandioca.bags} bolsa${mandioca.bags !== 1 ? 's' : ''} de 1 kg`}
-          delay={0.14}
-        />
-        <ShoppingItem
-          icon="🍞"
-          label="Pan"
-          value={formatKg(pan.kg)}
-          delay={0.17}
-        />
+        <ShoppingItem icon="🫙" label="Mandioca" value={`${mandioca.bags} bolsa${mandioca.bags !== 1 ? 's' : ''} de 1 kg`} delay={0.14} />
+        <ShoppingItem icon="🍞" label="Pan" value={formatKg(pan.kg)} delay={0.17} />
         <ShoppingItem
           icon="⚫"
           label="Carbón"
@@ -196,47 +165,17 @@ export function StepShoppingList({ list, onBack, onReset }: StepShoppingListProp
           subValue={`Total: ${carbon.totalKg} kg (necesita ${carbon.neededKg} kg)`}
           delay={0.20}
         />
-        <ShoppingItem
-          icon="🧄"
-          label="Pan de ajo"
-          value={`${panDeAjo.packages} paquete${panDeAjo.packages !== 1 ? 's' : ''} de 400 g`}
-          delay={0.23}
-        />
-        <ShoppingItem
-          icon="🫓"
-          label="Sopa paraguaya"
-          value={`${sopaParaguaya.packages} paquete${sopaParaguaya.packages !== 1 ? 's' : ''} de 1 kg`}
-          delay={0.26}
-        />
-        <ShoppingItem
-          icon="🧊"
-          label="Hielo"
-          value={`${hielo.bags} bolsa${hielo.bags !== 1 ? 's' : ''} de 3 kg`}
-          delay={0.29}
-        />
-        <ShoppingItem
-          icon="🍋"
-          label="Limón"
-          value={`${limon.units} unidades`}
-          delay={0.32}
-        />
+        <ShoppingItem icon="🧄" label="Pan de ajo" value={`${panDeAjo.packages} paquete${panDeAjo.packages !== 1 ? 's' : ''} de 400 g`} delay={0.23} />
+        <ShoppingItem icon="🫓" label="Sopa paraguaya" value={`${sopaParaguaya.packages} paquete${sopaParaguaya.packages !== 1 ? 's' : ''} de 1 kg`} delay={0.26} />
+        <ShoppingItem icon="🧊" label="Hielo" value={`${hielo.bags} bolsa${hielo.bags !== 1 ? 's' : ''} de 3 kg`} delay={0.29} />
+        <ShoppingItem icon="🍋" label="Limón" value={`${limon.units} unidades`} delay={0.32} />
         {nonDrinkers > 0 && (
-          <ShoppingItem
-            icon="🥤"
-            label="Bebidas sin alcohol"
-            value={`${bebidasSinAlcohol.liters} litros`}
-            delay={0.35}
-          />
+          <ShoppingItem icon="🥤" label="Bebidas sin alcohol" value={`${bebidasSinAlcohol.liters} litros`} delay={0.35} />
         )}
-        <ShoppingItem
-          icon="🥐"
-          label="Mbeju"
-          value={`${mbeju.packages} paquete${mbeju.packages !== 1 ? 's' : ''} de 1 kg`}
-          delay={0.38}
-        />
+        <ShoppingItem icon="🥐" label="Mbeju" value={`${mbeju.packages} paquete${mbeju.packages !== 1 ? 's' : ''} de 1 kg`} delay={0.38} />
       </div>
 
-      {/* Ensalada note */}
+      {/* Ensalada */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -253,20 +192,44 @@ export function StepShoppingList({ list, onBack, onReset }: StepShoppingListProp
       </motion.div>
 
       {/* Actions */}
-      <div className="grid grid-cols-2 gap-3 no-print">
-        <Button variant="outline" onClick={onBack}>
-          <ChevronLeft className="h-4 w-4" />
-          Configurar
+      {!isFinished && (
+        <div className="grid grid-cols-2 gap-3 no-print">
+          <Button variant="outline" onClick={onBack}>
+            <ChevronLeft className="h-4 w-4" /> Configurar
+          </Button>
+          <Button onClick={handleShareWhatsApp}>
+            <Share2 className="h-4 w-4" /> WhatsApp
+          </Button>
+        </div>
+      )}
+
+      {isFinished ? (
+        <Button onClick={onReset} className="no-print">
+          <RefreshCw className="h-4 w-4" /> Nuevo asado
         </Button>
-        <Button onClick={handleShare}>
-          <Share2 className="h-4 w-4" />
-          Compartir
-        </Button>
-      </div>
-      <Button variant="ghost" className="text-[hsl(var(--muted-fg))] no-print" onClick={onReset}>
-        <RefreshCw className="h-4 w-4" />
-        Nuevo asado
-      </Button>
+      ) : (
+        <div className="flex flex-col gap-2 no-print">
+          {!isSaved ? (
+            <Button variant="outline" onClick={onSave}>
+              <Save className="h-4 w-4" /> Guardar asado
+            </Button>
+          ) : (
+            <>
+              <Button variant="outline" onClick={onSave}>
+                <Save className="h-4 w-4" /> Actualizar asado guardado
+              </Button>
+              {onFinish && (
+                <Button variant="secondary" onClick={onFinish}>
+                  <CheckCircle className="h-4 w-4" /> Marcar como finalizado
+                </Button>
+              )}
+            </>
+          )}
+          <Button variant="ghost" className="text-[hsl(var(--muted-fg))] text-sm" onClick={onReset}>
+            <RefreshCw className="h-4 w-4" /> Nuevo asado
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

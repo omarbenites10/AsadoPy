@@ -2,9 +2,8 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Pencil, Trash2, Phone, Beer, BeerOff } from 'lucide-react'
+import { Pencil, Trash2, Phone } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import {
   Dialog,
   DialogContent,
@@ -15,13 +14,15 @@ import {
 } from '@/components/ui/dialog'
 import { ContactForm } from './contact-form'
 import type { Contact } from '@/types'
-import { SEX_LABELS } from '@/types'
+import { SEX_LABELS, ALCOHOL_LEVEL_LABELS } from '@/types'
 
 const SEX_COLORS = {
   hombre: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
   mujer: 'bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300',
   nino: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
 }
+
+const LEVEL_EMOJI = { tranquilo: '🍺', normal: '🍺🍺', fuerte: '🍺🍺🍺' }
 
 interface ContactCardProps {
   contact: Contact
@@ -64,43 +65,34 @@ export function ContactCard({
         role={selectable ? 'button' : undefined}
         aria-pressed={selectable ? selected : undefined}
       >
-        {/* Avatar */}
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-orange-400 to-red-500 font-bold text-white text-sm">
           {initials || '?'}
         </div>
 
-        {/* Info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-semibold text-sm truncate">{contact.name}</span>
-            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${SEX_COLORS[contact.sex]}`}>
+            <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${SEX_COLORS[contact.sex]}`}>
               {SEX_LABELS[contact.sex]}
             </span>
           </div>
-          <div className="flex items-center gap-2 mt-1 flex-wrap">
+          <div className="flex items-center gap-3 mt-1 flex-wrap">
             {contact.phone && (
               <span className="text-xs text-[hsl(var(--muted-fg))] flex items-center gap-1">
                 <Phone className="h-3 w-3" />
                 {contact.phone}
               </span>
             )}
-            <span className="text-xs text-[hsl(var(--muted-fg))] flex items-center gap-1">
-              {contact.drinksAlcohol ? (
-                <>
-                  <Beer className="h-3 w-3 text-amber-500" />
-                  <span>Toma alcohol</span>
-                </>
-              ) : (
-                <>
-                  <BeerOff className="h-3 w-3" />
-                  <span>No toma</span>
-                </>
-              )}
-            </span>
+            {contact.sex !== 'nino' && (
+              <span className="text-xs text-[hsl(var(--muted-fg))]">
+                {contact.drinksAlcohol
+                  ? `${LEVEL_EMOJI[contact.alcoholLevel ?? 'normal']} ${ALCOHOL_LEVEL_LABELS[contact.alcoholLevel ?? 'normal']}`
+                  : '🚫 No toma'}
+              </span>
+            )}
           </div>
         </div>
 
-        {/* Actions */}
         {!selectable && (
           <div className="flex items-center gap-1 shrink-0">
             <Button
@@ -114,8 +106,8 @@ export function ContactCard({
             <Button
               variant="ghost"
               size="icon-sm"
+              className="text-[hsl(var(--destructive))]"
               aria-label={`Eliminar ${contact.name}`}
-              className="text-[hsl(var(--destructive))] hover:text-[hsl(var(--destructive))]"
               onClick={(e) => { e.stopPropagation(); setDeleteOpen(true) }}
             >
               <Trash2 className="h-4 w-4" />
@@ -132,7 +124,6 @@ export function ContactCard({
         )}
       </motion.div>
 
-      {/* Edit dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent>
           <DialogHeader>
@@ -140,17 +131,13 @@ export function ContactCard({
           </DialogHeader>
           <ContactForm
             initialData={contact}
-            onSubmit={(data) => {
-              onEdit(contact.id, data)
-              setEditOpen(false)
-            }}
+            onSubmit={(data) => { onEdit(contact.id, data); setEditOpen(false) }}
             onCancel={() => setEditOpen(false)}
             submitLabel="Actualizar"
           />
         </DialogContent>
       </Dialog>
 
-      {/* Delete dialog */}
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent>
           <DialogHeader>
@@ -160,16 +147,8 @@ export function ContactCard({
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteOpen(false)}>
-              Cancelar
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => {
-                onDelete(contact.id)
-                setDeleteOpen(false)
-              }}
-            >
+            <Button variant="outline" onClick={() => setDeleteOpen(false)}>Cancelar</Button>
+            <Button variant="destructive" onClick={() => { onDelete(contact.id); setDeleteOpen(false) }}>
               Eliminar
             </Button>
           </DialogFooter>

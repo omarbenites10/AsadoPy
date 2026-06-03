@@ -17,12 +17,14 @@ export function useParticipants() {
       const alreadyAdded = participants.some((p) => p.contactId === contact.id)
       if (alreadyAdded) return null
 
+      const drinksAlcohol = contact.sex === 'nino' ? false : contact.drinksAlcohol
       const participant: Participant = {
         id: generateId(),
         contactId: contact.id,
         name: contact.name,
         sex: contact.sex,
-        drinksAlcohol: contact.sex === 'nino' ? false : contact.drinksAlcohol,
+        drinksAlcohol,
+        alcoholLevel: contact.alcoholLevel ?? 'normal',
       }
       setParticipants((prev) => [...prev, participant])
       return participant
@@ -32,10 +34,12 @@ export function useParticipants() {
 
   const addManual = useCallback(
     (data: Omit<Participant, 'id'>) => {
+      const drinksAlcohol = data.sex === 'nino' ? false : data.drinksAlcohol
       const participant: Participant = {
         ...data,
         id: generateId(),
-        drinksAlcohol: data.sex === 'nino' ? false : data.drinksAlcohol,
+        drinksAlcohol,
+        alcoholLevel: drinksAlcohol ? (data.alcoholLevel ?? 'normal') : 'normal',
       }
       setParticipants((prev) => [...prev, participant])
       return participant
@@ -49,7 +53,9 @@ export function useParticipants() {
         prev.map((p) => {
           if (p.id !== id) return p
           const updated = { ...p, ...data }
-          if (updated.sex === 'nino') updated.drinksAlcohol = false
+          if (updated.sex === 'nino') {
+            updated.drinksAlcohol = false
+          }
           return updated
         })
       )
@@ -68,6 +74,13 @@ export function useParticipants() {
     setParticipants([])
   }, [setParticipants])
 
+  const loadParticipants = useCallback(
+    (list: Participant[]) => {
+      setParticipants(list)
+    },
+    [setParticipants]
+  )
+
   const isContactSelected = useCallback(
     (contactId: string) => participants.some((p) => p.contactId === contactId),
     [participants]
@@ -80,6 +93,7 @@ export function useParticipants() {
     updateParticipant,
     removeParticipant,
     clearParticipants,
+    loadParticipants,
     isContactSelected,
   }
 }

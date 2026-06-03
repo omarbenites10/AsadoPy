@@ -4,11 +4,38 @@ export type ContainerType = 'lata' | 'botella' | 'botellita' | 'otro'
 
 export type CapacityUnit = 'ml' | 'litros'
 
+export type AlcoholLevel = 'tranquilo' | 'normal' | 'fuerte'
+
+export type AsadoStatus = 'activo' | 'finalizado'
+
+// ── Alcohol level definitions ─────────────────────────────────────────────────
+
+export const ALCOHOL_LEVEL_LITERS: Record<AlcoholLevel, number> = {
+  tranquilo: 1.5,
+  normal: 2,
+  fuerte: 3,
+}
+
+export const ALCOHOL_LEVEL_LABELS: Record<AlcoholLevel, string> = {
+  tranquilo: 'Tranquilo',
+  normal: 'Normal',
+  fuerte: 'Fuerte',
+}
+
+export const ALCOHOL_LEVEL_DESCRIPTIONS: Record<AlcoholLevel, string> = {
+  tranquilo: '1.5 L por evento',
+  normal: '2 L por evento',
+  fuerte: '3 L por evento',
+}
+
+// ── Domain types ──────────────────────────────────────────────────────────────
+
 export interface Contact {
   id: string
   name: string
   sex: Sex
   drinksAlcohol: boolean
+  alcoholLevel: AlcoholLevel
   phone: string
   createdAt: number
 }
@@ -19,6 +46,7 @@ export interface Participant {
   name: string
   sex: Sex
   drinksAlcohol: boolean
+  alcoholLevel: AlcoholLevel
 }
 
 export interface SexConsumption {
@@ -37,15 +65,35 @@ export interface BeerConfig {
 export interface ConsumptionConfig {
   carne: SexConsumption
   chorizo: SexConsumption
-  cerveza: SexConsumption
   beer: BeerConfig
 }
+
+// ── Saved asado ───────────────────────────────────────────────────────────────
+
+export interface SavedAsado {
+  id: string
+  name: string
+  status: AsadoStatus
+  participants: Participant[]
+  config: ConsumptionConfig
+  createdAt: number
+  updatedAt: number
+  finishedAt?: number
+}
+
+// ── Calculation results ───────────────────────────────────────────────────────
 
 export interface CarbonResult {
   bags5kg: number
   bags3kg: number
   totalKg: number
   neededKg: number
+}
+
+export interface CervezaBreakdownItem {
+  level: AlcoholLevel
+  count: number
+  liters: number
 }
 
 export interface CervezaResult {
@@ -55,6 +103,7 @@ export interface CervezaResult {
   containerLabel: string
   capacity: number
   unit: CapacityUnit
+  breakdown: CervezaBreakdownItem[]
 }
 
 export interface ShoppingList {
@@ -77,10 +126,11 @@ export interface ShoppingList {
 
 export type CalculatorStep = 'participantes' | 'configuracion' | 'lista'
 
+// ── Labels & defaults ─────────────────────────────────────────────────────────
+
 export const DEFAULT_CONSUMPTION_CONFIG: ConsumptionConfig = {
   carne: { hombre: 350, mujer: 250, nino: 100 },
   chorizo: { hombre: 150, mujer: 150, nino: 100 },
-  cerveza: { hombre: 3, mujer: 2, nino: 0 },
   beer: {
     containerType: 'lata',
     containerLabel: 'Lata',
@@ -101,3 +151,5 @@ export const CONTAINER_TYPE_LABELS: Record<ContainerType, string> = {
   botellita: 'Botellita',
   otro: 'Otro',
 }
+
+export const WHATSAPP_NUMBER = '595984411295'

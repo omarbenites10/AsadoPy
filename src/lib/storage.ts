@@ -2,6 +2,8 @@ const STORAGE_KEYS = {
   CONTACTS: 'asadopy_contacts',
   PARTICIPANTS: 'asadopy_participants',
   CONSUMPTION_CONFIG: 'asadopy_consumption_config',
+  ASADOS: 'asadopy_asados',
+  CURRENT_ASADO_ID: 'asadopy_current_asado_id',
 } as const
 
 export function storageGet<T>(key: string, fallback: T): T {

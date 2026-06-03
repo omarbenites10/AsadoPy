@@ -12,14 +12,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import type { Contact, Sex } from '@/types'
-import { SEX_LABELS } from '@/types'
+import type { Contact, Sex, AlcoholLevel } from '@/types'
+import { SEX_LABELS, ALCOHOL_LEVEL_LABELS, ALCOHOL_LEVEL_DESCRIPTIONS } from '@/types'
 
 interface ContactFormProps {
   initialData?: Partial<Contact>
   onSubmit: (data: Omit<Contact, 'id' | 'createdAt'>) => void
   onCancel: () => void
   submitLabel?: string
+}
+
+const ALCOHOL_LEVELS: AlcoholLevel[] = ['tranquilo', 'normal', 'fuerte']
+const LEVEL_EMOJI: Record<AlcoholLevel, string> = {
+  tranquilo: '🍺',
+  normal: '🍺🍺',
+  fuerte: '🍺🍺🍺',
 }
 
 export function ContactForm({
@@ -32,6 +39,9 @@ export function ContactForm({
   const [sex, setSex] = useState<Sex>(initialData?.sex ?? 'hombre')
   const [drinksAlcohol, setDrinksAlcohol] = useState(
     initialData?.sex === 'nino' ? false : (initialData?.drinksAlcohol ?? true)
+  )
+  const [alcoholLevel, setAlcoholLevel] = useState<AlcoholLevel>(
+    initialData?.alcoholLevel ?? 'normal'
   )
   const [phone, setPhone] = useState(initialData?.phone ?? '')
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -55,10 +65,12 @@ export function ContactForm({
       setErrors(errs)
       return
     }
+    const drinks = sex === 'nino' ? false : drinksAlcohol
     onSubmit({
       name: name.trim(),
       sex,
-      drinksAlcohol: sex === 'nino' ? false : drinksAlcohol,
+      drinksAlcohol: drinks,
+      alcoholLevel: drinks ? alcoholLevel : 'normal',
       phone: phone.trim(),
     })
   }
@@ -92,29 +104,57 @@ export function ContactForm({
           </SelectTrigger>
           <SelectContent>
             {(Object.keys(SEX_LABELS) as Sex[]).map((s) => (
-              <SelectItem key={s} value={s}>
-                {SEX_LABELS[s]}
-              </SelectItem>
+              <SelectItem key={s} value={s}>{SEX_LABELS[s]}</SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
-      <div className="flex items-center justify-between rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] px-4 py-3">
-        <div className="flex flex-col gap-0.5">
-          <span className="text-sm font-medium">Consume alcohol</span>
-          {sex === 'nino' && (
-            <span className="text-xs text-[hsl(var(--muted-fg))]">
-              Prohibido para niños
-            </span>
-          )}
+      <div className="flex flex-col gap-3 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-sm font-medium">Consume alcohol</span>
+            {sex === 'nino' && (
+              <span className="text-xs text-[hsl(var(--muted-fg))]">Prohibido para niños</span>
+            )}
+          </div>
+          <Switch
+            checked={drinksAlcohol}
+            onCheckedChange={setDrinksAlcohol}
+            disabled={sex === 'nino'}
+            aria-label="Consume alcohol"
+          />
         </div>
-        <Switch
-          checked={drinksAlcohol}
-          onCheckedChange={setDrinksAlcohol}
-          disabled={sex === 'nino'}
-          aria-label="Consume alcohol"
-        />
+
+        {drinksAlcohol && sex !== 'nino' && (
+          <div className="flex flex-col gap-2 pt-2 border-t border-[hsl(var(--border))]">
+            <Label className="text-xs text-[hsl(var(--muted-fg))]">
+              Nivel de consumo de cerveza
+            </Label>
+            <div className="grid grid-cols-3 gap-2">
+              {ALCOHOL_LEVELS.map((level) => (
+                <button
+                  key={level}
+                  type="button"
+                  onClick={() => setAlcoholLevel(level)}
+                  className={`flex flex-col items-center gap-1 rounded-xl border-2 p-2.5 text-center transition-all ${
+                    alcoholLevel === level
+                      ? 'border-[hsl(var(--primary))] bg-orange-50 dark:bg-orange-950/30'
+                      : 'border-[hsl(var(--border))] bg-[hsl(var(--card-bg))] hover:border-orange-300'
+                  }`}
+                >
+                  <span className="text-sm">{LEVEL_EMOJI[level]}</span>
+                  <span className="text-xs font-semibold leading-tight">
+                    {ALCOHOL_LEVEL_LABELS[level]}
+                  </span>
+                  <span className="text-xs text-[hsl(var(--muted-fg))]">
+                    {ALCOHOL_LEVEL_DESCRIPTIONS[level]}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col gap-1.5">
