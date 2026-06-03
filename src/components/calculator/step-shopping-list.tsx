@@ -1,10 +1,13 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { ChevronLeft, Share2, RefreshCw, ShoppingCart, Save, CheckCircle } from 'lucide-react'
+import {
+  ChevronLeft, RefreshCw, ShoppingCart, Save,
+  CheckCircle, MessageCircle, FileSpreadsheet,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { ShoppingList } from '@/types'
-import { ALCOHOL_LEVEL_LABELS, WHATSAPP_NUMBER } from '@/types'
+import { WHATSAPP_NUMBER } from '@/types'
 
 interface ShoppingItemProps {
   icon: string
@@ -32,8 +35,9 @@ function ShoppingItem({ icon, label, value, subValue, delay = 0 }: ShoppingItemP
   )
 }
 
-interface StepShoppingListProps {
+export interface StepShoppingListProps {
   list: ShoppingList
+  asadoName?: string
   onBack: () => void
   onReset: () => void
   onSave: () => void
@@ -48,6 +52,7 @@ function formatKg(kg: number): string {
 
 export function StepShoppingList({
   list,
+  asadoName,
   onBack,
   onReset,
   onSave,
@@ -69,22 +74,23 @@ export function StepShoppingList({
   if (carbon.bags5kg > 0) carbonParts.push(`${carbon.bags5kg} bolsa${carbon.bags5kg !== 1 ? 's' : ''} de 5 kg`)
   if (carbon.bags3kg > 0) carbonParts.push(`${carbon.bags3kg} bolsa${carbon.bags3kg !== 1 ? 's' : ''} de 3 kg`)
 
+  // ── WhatsApp ──────────────────────────────────────────────────────────────────
   function buildShareText(): string {
-    const lines = [
-      '🔥 *Lista de compras - AsadoPy*',
+    const lines: string[] = [
+      '🔥 Lista de compras - AsadoPy',
+      '',
       `👥 ${totalParticipants} persona${totalParticipants !== 1 ? 's' : ''}`,
       '',
       `🥩 Carne: ${formatKg(carne.kg)}`,
       `🌭 Chorizo: ${formatKg(chorizo.kg)}`,
     ]
+
     if (drinkers > 0) {
-      lines.push(`🍺 Cerveza: ${cerveza.liters} litros (${cerveza.units} ${cerveza.containerLabel}${cerveza.units !== 1 ? 's' : ''} de ${capacityDisplay})`)
-      if (cerveza.breakdown.length > 0) {
-        cerveza.breakdown.forEach(b => {
-          lines.push(`   - ${ALCOHOL_LEVEL_LABELS[b.level]}: ${b.count} persona${b.count !== 1 ? 's' : ''} × ${b.liters / b.count}L = ${b.liters}L`)
-        })
-      }
+      lines.push(
+        `🍺 Cerveza: ${cerveza.liters} litros (${cerveza.units} ${cerveza.containerLabel}${cerveza.units !== 1 ? 's' : ''} de ${capacityDisplay})`
+      )
     }
+
     lines.push(
       `🫙 Mandioca: ${mandioca.bags} bolsa${mandioca.bags !== 1 ? 's' : ''} de 1 kg`,
       `🍞 Pan: ${formatKg(pan.kg)}`,
@@ -94,29 +100,93 @@ export function StepShoppingList({
       `🧊 Hielo: ${hielo.bags} bolsa${hielo.bags !== 1 ? 's' : ''} de 3 kg`,
       `🍋 Limón: ${limon.units} unidades`,
     )
+
     if (nonDrinkers > 0) {
       lines.push(`🥤 Bebidas sin alcohol: ${bebidasSinAlcohol.liters} litros`)
     }
+
     lines.push(
       `🥐 Mbeju: ${mbeju.packages} paquete${mbeju.packages !== 1 ? 's' : ''} de 1 kg`,
       '',
-      '🥗 _Llevar ensalada. Se recomienda que alguien del grupo la prepare._',
-      '',
-      '🔥 Calculado con AsadoPy',
+      '🥗 Ensalada: llevar, es difícil estimar cantidades.',
     )
+
     return lines.join('\n')
   }
 
   function handleShareWhatsApp() {
-    const text = buildShareText()
-    const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`
+    const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(buildShareText())}`
     window.open(url, '_blank', 'noopener,noreferrer')
   }
 
-  const cervevaBreakdownStr = cerveza.breakdown.length > 0
-    ? cerveza.breakdown
-        .map(b => `${b.count} ${ALCOHOL_LEVEL_LABELS[b.level]}${b.count !== 1 ? 's' : ''}`)
-        .join(', ')
+  // ── Excel ─────────────────────────────────────────────────────────────────────
+  async function handleExportExcel() {
+    const XLSX = (await import('xlsx')).default ?? (await import('xlsx'))
+
+    const title = asadoName ?? 'AsadoPy'
+    const date = new Date().toLocaleDateString('es-PY', {
+      day: 'numeric', month: 'long', year: 'numeric',
+    })
+
+    type Row = (string | number)[]
+
+    const rows: Row[] = [
+      ['Lista de Compras - AsadoPy'],
+      [title],
+      [date],
+      [],
+      [`Participantes: ${totalParticipants}${drinkers > 0 ? ` (${drinkers} con alcohol, ${nonDrinkers} sin alcohol)` : ''}`],
+      [],
+      ['Producto', 'Cantidad', 'Unidad'],
+      ['Carne', carne.kg, 'kg'],
+      ['Chorizo', chorizo.kg, 'kg'],
+    ]
+
+    if (drinkers > 0) {
+      rows.push(['Cerveza', cerveza.liters, `litros (${cerveza.units} ${cerveza.containerLabel}${cerveza.units !== 1 ? 's' : ''} de ${capacityDisplay})`])
+    }
+
+    rows.push(
+      ['Mandioca', mandioca.bags, `bolsa${mandioca.bags !== 1 ? 's' : ''} de 1 kg`],
+      ['Pan', pan.kg, 'kg'],
+      ['Carbón', carbon.totalKg, `kg (${carbonParts.join(' + ')})`],
+      ['Pan de ajo', panDeAjo.packages, `paquete${panDeAjo.packages !== 1 ? 's' : ''} de 400 g`],
+      ['Sopa paraguaya', sopaParaguaya.packages, `paquete${sopaParaguaya.packages !== 1 ? 's' : ''} de 1 kg`],
+      ['Hielo', hielo.bags, `bolsa${hielo.bags !== 1 ? 's' : ''} de 3 kg`],
+      ['Limón', limon.units, 'unidades'],
+    )
+
+    if (nonDrinkers > 0) {
+      rows.push(['Bebidas sin alcohol', bebidasSinAlcohol.liters, 'litros'])
+    }
+
+    rows.push(
+      ['Mbeju', mbeju.packages, `paquete${mbeju.packages !== 1 ? 's' : ''} de 1 kg`],
+      [],
+      ['Ensalada', '-', 'Llevar. Es difícil estimar cantidades.'],
+    )
+
+    const ws = XLSX.utils.aoa_to_sheet(rows)
+
+    // Column widths
+    ws['!cols'] = [{ wch: 22 }, { wch: 12 }, { wch: 38 }]
+
+    // Merge title rows (A1:C1, A2:C2, A3:C3)
+    ws['!merges'] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 2 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 2 } },
+      { s: { r: 2, c: 0 }, e: { r: 2, c: 2 } },
+      { s: { r: 4, c: 0 }, e: { r: 4, c: 2 } },
+    ]
+
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Lista de Compras')
+    XLSX.writeFile(wb, `AsadoPy - ${title}.xlsx`)
+  }
+
+  // ── Cerveza subtext ───────────────────────────────────────────────────────────
+  const cervevaSubtext = drinkers > 0
+    ? `${cerveza.units} ${cerveza.containerLabel}${cerveza.units !== 1 ? 's' : ''} de ${capacityDisplay}`
     : undefined
 
   return (
@@ -152,7 +222,7 @@ export function StepShoppingList({
             icon="🍺"
             label="Cerveza"
             value={`${cerveza.liters} litros`}
-            subValue={`${cerveza.units} ${cerveza.containerLabel}${cerveza.units !== 1 ? 's' : ''} de ${capacityDisplay}${cervevaBreakdownStr ? ` · ${cervevaBreakdownStr}` : ''}`}
+            subValue={cervevaSubtext}
             delay={0.11}
           />
         )}
@@ -191,35 +261,37 @@ export function StepShoppingList({
         </div>
       </motion.div>
 
-      {/* Actions */}
-      {!isFinished && (
-        <div className="grid grid-cols-2 gap-3 no-print">
-          <Button variant="outline" onClick={onBack}>
-            <ChevronLeft className="h-4 w-4" /> Configurar
-          </Button>
-          <Button onClick={handleShareWhatsApp}>
-            <Share2 className="h-4 w-4" /> WhatsApp
-          </Button>
-        </div>
-      )}
+      {/* Share buttons — always visible */}
+      <div className="grid grid-cols-2 gap-3 no-print">
+        <Button onClick={handleShareWhatsApp} className="gap-2">
+          <MessageCircle className="h-4 w-4" /> WhatsApp
+        </Button>
+        <Button variant="outline" onClick={handleExportExcel} className="gap-2">
+          <FileSpreadsheet className="h-4 w-4" /> Excel
+        </Button>
+      </div>
 
+      {/* Navigation + save/finish */}
       {isFinished ? (
         <Button onClick={onReset} className="no-print">
           <RefreshCw className="h-4 w-4" /> Nuevo asado
         </Button>
       ) : (
         <div className="flex flex-col gap-2 no-print">
+          <Button variant="outline" onClick={onBack}>
+            <ChevronLeft className="h-4 w-4" /> Volver a configuración
+          </Button>
           {!isSaved ? (
-            <Button variant="outline" onClick={onSave}>
+            <Button variant="secondary" onClick={onSave}>
               <Save className="h-4 w-4" /> Guardar asado
             </Button>
           ) : (
             <>
-              <Button variant="outline" onClick={onSave}>
+              <Button variant="secondary" onClick={onSave}>
                 <Save className="h-4 w-4" /> Actualizar asado guardado
               </Button>
               {onFinish && (
-                <Button variant="secondary" onClick={onFinish}>
+                <Button variant="outline" onClick={onFinish}>
                   <CheckCircle className="h-4 w-4" /> Marcar como finalizado
                 </Button>
               )}
