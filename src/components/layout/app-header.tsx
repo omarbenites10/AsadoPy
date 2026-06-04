@@ -1,5 +1,7 @@
 import { Flame } from 'lucide-react'
 import { ThemeToggle } from './theme-toggle'
+import { SyncButton } from './sync-button'
+import { AuthInit } from '@/components/auth/auth-init'
 
 interface AppHeaderProps {
   title?: string
@@ -8,6 +10,7 @@ interface AppHeaderProps {
 export function AppHeader({ title = 'AsadoPy' }: AppHeaderProps) {
   return (
     <header className="sticky top-0 z-40 w-full border-b border-[hsl(var(--border))] bg-[hsl(var(--bg))]/95 backdrop-blur supports-[backdrop-filter]:bg-[hsl(var(--bg))]/80">
+      <AuthInit />
       <div className="flex h-14 items-center justify-between px-4 max-w-2xl mx-auto">
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-orange-400 to-red-500">
@@ -15,7 +18,10 @@ export function AppHeader({ title = 'AsadoPy' }: AppHeaderProps) {
           </div>
           <span className="font-bold text-lg tracking-tight">{title}</span>
         </div>
-        <ThemeToggle />
+        <div className="flex items-center gap-1">
+          <SyncButton />
+          <ThemeToggle />
+        </div>
       </div>
     </header>
   )

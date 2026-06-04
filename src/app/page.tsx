@@ -69,9 +69,10 @@ export default function HomePage() {
       update(currentAsadoId, participants, config, name)
       toast({ title: 'Asado actualizado', variant: 'default' })
     } else {
-      const saved = saveNew(name, participants, config)
-      setCurrentAsadoId(saved.id)
-      toast({ title: 'Asado guardado', variant: 'default' })
+      saveNew(name, participants, config).then((saved) => {
+        setCurrentAsadoId(saved.id)
+        toast({ title: 'Asado guardado', variant: 'default' })
+      })
     }
   }
 
@@ -83,11 +84,12 @@ export default function HomePage() {
   }
 
   function handleDuplicate(id: string) {
-    const copy = duplicate(id)
-    if (copy) {
-      openAsado(copy)
-      toast({ title: 'Asado duplicado', variant: 'default' })
-    }
+    duplicate(id).then((copy) => {
+      if (copy) {
+        openAsado(copy)
+        toast({ title: 'Asado duplicado', variant: 'default' })
+      }
+    })
   }
 
   function handleReset() {
