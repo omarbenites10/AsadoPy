@@ -13,7 +13,18 @@
       "Bash(node -e \"const {chromium} = require\\('playwright'\\); chromium.executablePath && console.log\\('ok: ' + chromium.executablePath\\(\\)\\)\")",
       "Bash(node verify.mjs)",
       "Bash(pkill -f \"next dev\")",
-      "Bash(npx kill-port *)"
+      "Bash(npx kill-port *)",
+      "Bash(git checkout *)",
+      "Bash(git merge *)",
+      "Bash(git stash *)",
+      "Bash(git rm *)",
+      "Bash(git push *)",
+      "Bash(gh repo *)",
+      "Bash(python -c \"import sys,json; [print\\(r['name'], r['url']\\) for r in json.load\\(sys.stdin\\)]\")",
+      "Bash(gh auth *)",
+      "Bash(git branch *)",
+      "Bash(git remote *)",
+      "PowerShell(New-Item -ItemType Directory -Force \"D:\\\\Omar\\\\Proyectos\\\\AsadoPy\\\\src\\\\components\\\\asados\")"
     ],
     "additionalDirectories": [
       "D:\\Omar\\Proyectos\\asadopy-temp"
