@@ -18,6 +18,16 @@ export const metadata: Metadata = {
   keywords: ['asado', 'paraguay', 'calculadora', 'insumos', 'asado paraguayo', 'compras'],
   authors: [{ name: 'AsadoPy' }],
   manifest: '/manifest.webmanifest',
+  icons: {
+    icon: [
+      { url: '/icons/icon.svg', type: 'image/svg+xml' },
+      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+    shortcut: '/icons/icon-192.png',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
@@ -47,10 +57,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="es" className={geistSans.variable} suppressHydrationWarning>
-      <head>
-        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
-        <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
-      </head>
+      <head />
       <body className="min-h-dvh flex flex-col bg-[hsl(var(--bg))] text-[hsl(var(--fg))]">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <AppHeader />
