@@ -38,6 +38,7 @@ export interface Contact {
   alcoholLevel: AlcoholLevel
   phone: string
   isFavorite: boolean
+  isSelf?: boolean
   createdAt: number
 }
 
@@ -48,6 +49,7 @@ export interface Participant {
   sex: Sex
   drinksAlcohol: boolean
   alcoholLevel: AlcoholLevel
+  isSelf?: boolean
 }
 
 export interface SexConsumption {

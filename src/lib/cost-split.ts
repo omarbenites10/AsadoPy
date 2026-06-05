@@ -70,7 +70,7 @@ export function calculateCostSplit(
 
   const each = 1 / n
 
-  return participants.map(p => {
+  const raw = participants.map(p => {
     const isDrinker = p.drinksAlcohol && p.sex !== 'nino'
 
     const apply = (v: number) => v * discountFactor
@@ -96,6 +96,37 @@ export function calculateCostSplit(
       carne, chorizo, cerveza, hielo, bebidasSinAlcohol,
       mandioca, pan, carbon, panDeAjo, sopaParaguaya, limon, mbeju,
       total,
+    }
+  })
+
+  // Redistribute "Yo" (isSelf) share to other participants
+  const selfIds = new Set(participants.filter(p => p.isSelf).map(p => p.id))
+  if (selfIds.size === 0) return raw
+
+  const grandTotal = raw.reduce((s, r) => s + r.total, 0)
+  const selfTotal = raw.filter(r => selfIds.has(r.id)).reduce((s, r) => s + r.total, 0)
+  const nonSelfTotal = grandTotal - selfTotal
+  const scaleFactor = nonSelfTotal > 0 ? grandTotal / nonSelfTotal : 1
+
+  const zero: ItemPrices = { carne: 0, chorizo: 0, cerveza: 0, hielo: 0, bebidasSinAlcohol: 0, mandioca: 0, pan: 0, carbon: 0, panDeAjo: 0, sopaParaguaya: 0, limon: 0, mbeju: 0 }
+
+  return raw.map(r => {
+    if (selfIds.has(r.id)) return { ...r, ...zero, total: 0 }
+    return {
+      ...r,
+      carne: r.carne * scaleFactor,
+      chorizo: r.chorizo * scaleFactor,
+      cerveza: r.cerveza * scaleFactor,
+      hielo: r.hielo * scaleFactor,
+      bebidasSinAlcohol: r.bebidasSinAlcohol * scaleFactor,
+      mandioca: r.mandioca * scaleFactor,
+      pan: r.pan * scaleFactor,
+      carbon: r.carbon * scaleFactor,
+      panDeAjo: r.panDeAjo * scaleFactor,
+      sopaParaguaya: r.sopaParaguaya * scaleFactor,
+      limon: r.limon * scaleFactor,
+      mbeju: r.mbeju * scaleFactor,
+      total: r.total * scaleFactor,
     }
   })
 }

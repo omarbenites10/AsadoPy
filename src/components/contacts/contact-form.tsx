@@ -44,6 +44,7 @@ export function ContactForm({
     initialData?.alcoholLevel ?? 'normal'
   )
   const [phone, setPhone] = useState(initialData?.phone ?? '')
+  const [isSelf, setIsSelf] = useState(initialData?.isSelf ?? false)
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   function validate() {
@@ -73,6 +74,7 @@ export function ContactForm({
       alcoholLevel: drinks ? alcoholLevel : 'normal',
       phone: phone.trim(),
       isFavorite: initialData?.isFavorite ?? false,
+      isSelf,
     })
   }
 
@@ -167,6 +169,22 @@ export function ContactForm({
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
         />
+      </div>
+
+      <div className="flex flex-col gap-3 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-sm font-medium">Este soy yo</span>
+            <span className="text-xs text-[hsl(var(--muted-fg))]">
+              Tu parte no se incluirá en la distribución de costos
+            </span>
+          </div>
+          <Switch
+            checked={isSelf}
+            onCheckedChange={setIsSelf}
+            aria-label="Este soy yo"
+          />
+        </div>
       </div>
 
       <div className="flex gap-3 pt-2">

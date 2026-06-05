@@ -103,10 +103,26 @@ export function CostSplitterDialog({
   const totalDiscounts = discounts.reduce((s, d) => s + d.amount, 0)
   const finalTotal = subtotal + totalDiscounts
 
-  const results = useMemo(
-    () => calculateCostSplit(participants, config, prices, discounts),
-    [participants, config, prices, discounts]
+  // Enrich participants with isSelf from current contact data (handles participants added before isSelf was tracked)
+  const enrichedParticipants = useMemo(() =>
+    participants.map(p => ({
+      ...p,
+      isSelf: p.isSelf ||
+        contacts.find(c => c.id === p.contactId)?.isSelf ||
+        contacts.find(c => c.name.trim().toLowerCase() === p.name.trim().toLowerCase())?.isSelf ||
+        false,
+    })),
+    [participants, contacts]
   )
+
+  const results = useMemo(
+    () => calculateCostSplit(enrichedParticipants, config, prices, discounts),
+    [enrichedParticipants, config, prices, discounts]
+  )
+
+  function isParticipantSelf(resultId: string): boolean {
+    return enrichedParticipants.find(p => p.id === resultId)?.isSelf ?? false
+  }
 
   const hasResults = subtotal > 0 && results.length > 0
   const isSaved = savedData !== null
@@ -166,13 +182,15 @@ export function CostSplitterDialog({
   function handleSave() {
     if (!asadoId || !hasResults) return
     const existingPayments = savedData?.payments ?? []
-    const payments: ParticipantPayment[] = results.map(r => {
-      const existing = existingPayments.find(p => p.participantId === r.id)
-      const amountDue = Math.round(r.total)
-      return existing
-        ? { ...existing, amountDue, name: r.name }
-        : { participantId: r.id, name: r.name, amountDue, amountPaid: amountDue, isPaid: false }
-    })
+    const payments: ParticipantPayment[] = results
+      .filter(r => !isParticipantSelf(r.id))
+      .map(r => {
+        const existing = existingPayments.find(p => p.participantId === r.id)
+        const amountDue = Math.round(r.total)
+        return existing
+          ? { ...existing, amountDue, name: r.name }
+          : { participantId: r.id, name: r.name, amountDue, amountPaid: amountDue, isPaid: false }
+      })
     save(prices, discounts, payments)
     toast({ title: isSaved ? 'Distribución actualizada' : 'Distribución guardada' })
   }
@@ -201,7 +219,7 @@ export function CostSplitterDialog({
     const title = asadoName ?? 'Asado'
     const lines = [`💰 Distribución de costos - ${title}`, '']
     for (const r of results) {
-      lines.push(`👤 ${r.name}: Gs. ${fmt(r.total)}`)
+      if (!isParticipantSelf(r.id)) lines.push(`👤 ${r.name}: Gs. ${fmt(r.total)}`)
     }
     lines.push('', `💵 Total: Gs. ${fmt(finalTotal)}`)
     return lines.join('\n')
@@ -421,13 +439,14 @@ export function CostSplitterDialog({
 
             <div className="flex flex-col gap-2.5">
               {results.map(r => {
+                const self = isParticipantSelf(r.id)
                 const { sex, drinksAlcohol } = getParticipantMeta(r.id)
-                const phone = getParticipantPhone(r.id)
+                const phone = self ? undefined : getParticipantPhone(r.id)
                 const rounded = roundUp500(r.total)
                 const waUrl = phone
                   ? `https://wa.me/${toWaPhone(phone)}?text=${encodeURIComponent(buildPersonalMessage(sex, drinksAlcohol, rounded))}`
                   : null
-                const payment = savedData?.payments.find(p => p.participantId === r.id) ?? null
+                const payment = self ? null : (savedData?.payments.find(p => p.participantId === r.id) ?? null)
                 return (
                   <ParticipantCostCard
                     key={r.id}
@@ -438,6 +457,7 @@ export function CostSplitterDialog({
                     payment={payment}
                     onTogglePaid={handleTogglePaid}
                     onAmountPaidChange={handleAmountPaidChange}
+                    isSelf={self}
                   />
                 )
               })}
@@ -476,6 +496,7 @@ function ParticipantCostCard({
   payment,
   onTogglePaid,
   onAmountPaidChange,
+  isSelf,
 }: {
   result: ParticipantCost
   visibleFields: { key: keyof ItemPrices; icon: string; label: string }[]
@@ -484,9 +505,29 @@ function ParticipantCostCard({
   payment: ParticipantPayment | null
   onTogglePaid: (id: string, current: boolean, due: number) => void
   onAmountPaidChange: (id: string, raw: string) => void
+  isSelf?: boolean
 }) {
   const amountDue = Math.round(result.total)
   const diff = payment ? payment.amountPaid - payment.amountDue : 0
+
+  if (isSelf) {
+    return (
+      <div className="rounded-xl border border-violet-200 dark:border-violet-800/50 bg-[hsl(var(--card-bg))] p-3.5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-sm">{result.name}</span>
+            <span className="inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300">
+              Yo
+            </span>
+          </div>
+          <div className="flex flex-col items-end gap-0.5">
+            <span className="font-bold text-sm text-[hsl(var(--muted-fg))]">Sin costo</span>
+            <span className="text-xs text-[hsl(var(--muted-fg))]">Cubierto por el grupo</span>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card-bg))] p-3.5">

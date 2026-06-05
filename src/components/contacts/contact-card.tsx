@@ -80,6 +80,11 @@ export function ContactCard({
             <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${SEX_COLORS[contact.sex]}`}>
               {SEX_LABELS[contact.sex]}
             </span>
+            {contact.isSelf && (
+              <span className="inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300">
+                Yo
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-3 mt-1 flex-wrap">
             {contact.phone && (

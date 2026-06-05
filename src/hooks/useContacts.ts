@@ -41,7 +41,15 @@ export function useContacts() {
           .from('contacts')
           .select('*')
           .eq('user_id', user.id)
-        if (data) setContacts(data.map(fromContactRow))
+        if (data) {
+          setContacts(prev => {
+            const selfId = prev.find(c => c.isSelf)?.id
+            return data.map(row => {
+              const fromDb = fromContactRow(row)
+              return selfId === fromDb.id ? { ...fromDb, isSelf: true } : fromDb
+            })
+          })
+        }
       } catch (e) {
         console.error('Contact sync error:', e)
       }
@@ -67,8 +75,10 @@ export function useContacts() {
           } else if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
             const updated = fromContactRow(payload.new as Parameters<typeof fromContactRow>[0])
             setContacts((prev) => {
+              const existing = prev.find((c) => c.id === updated.id)
+              const withSelf = existing?.isSelf ? { ...updated, isSelf: true } : updated
               const exists = prev.some((c) => c.id === updated.id)
-              return exists ? prev.map((c) => (c.id === updated.id ? updated : c)) : [...prev, updated]
+              return exists ? prev.map((c) => (c.id === updated.id ? withSelf : c)) : [...prev, withSelf]
             })
           }
         }
@@ -88,7 +98,10 @@ export function useContacts() {
         id: generateId(),
         createdAt: Date.now(),
       }
-      setContacts((prev) => [...prev, contact])
+      setContacts((prev) => {
+        const base = contact.isSelf ? prev.map(c => ({ ...c, isSelf: false })) : prev
+        return [...base, contact]
+      })
       if (user && supabase) {
         const sb = supabase
         sb.from('contacts').insert(toContactRow(contact, user.id)).then(({ error }) => { if (error) console.error(error) })
@@ -100,7 +113,12 @@ export function useContacts() {
 
   const updateContact = useCallback(
     (id: string, data: Partial<Omit<Contact, 'id' | 'createdAt'>>) => {
-      setContacts((prev) => prev.map((c) => (c.id === id ? { ...c, ...data } : c)))
+      setContacts((prev) => {
+        if (data.isSelf) {
+          return prev.map(c => c.id === id ? { ...c, ...data } : { ...c, isSelf: false })
+        }
+        return prev.map(c => c.id === id ? { ...c, ...data } : c)
+      })
       if (user && supabase) {
         const sb = supabase
         sb.from('contacts').update(data).eq('id', id).eq('user_id', user.id).then(({ error }) => { if (error) console.error(error) })

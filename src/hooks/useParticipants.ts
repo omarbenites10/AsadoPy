@@ -25,6 +25,7 @@ export function useParticipants() {
         sex: contact.sex,
         drinksAlcohol,
         alcoholLevel: contact.alcoholLevel ?? 'normal',
+        isSelf: contact.isSelf ?? false,
       }
       setParticipants((prev) => [...prev, participant])
       return participant
