@@ -51,12 +51,12 @@ function buildPersonalMessage(sex: Sex, drinksAlcohol: boolean, rounded: number)
   const amount = rounded.toLocaleString('es-PY')
   if (sex === 'mujer') {
     return drinksAlcohol
-      ? `Hola queridaa, me podrias transferir ${amount}gs porfis. Es para el asado y la birra`
-      : `Hola queridaa, me podrias transferir ${amount}gs porfis. Es para el asado`
+      ? `Hola queridaa, me podrias transferir ${amount}gs porfis. Es para el asado y la birra\nMi alias es: +595984411295`
+      : `Hola queridaa, me podrias transferir ${amount}gs porfis. Es para el asado\nMi alias es: +595984411295`
   }
   return drinksAlcohol
-    ? `Hola pai, me podrias transferir ${amount}gs porfis. Es para el asado y la birra`
-    : `Hola pai, me podrias transferir ${amount}gs porfis. Es para el asado`
+    ? `Hola pai, me podrias transferir ${amount}gs porfis. Es para el asado y la birra\nMi alias es: +595984411295`
+    : `Hola pai, me podrias transferir ${amount}gs porfis. Es para el asado\nMi alias es: +595984411295`
 }
 
 interface Props {
