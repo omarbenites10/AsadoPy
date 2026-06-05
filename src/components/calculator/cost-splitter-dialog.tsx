@@ -129,6 +129,20 @@ export function CostSplitterDialog({
     return selfParticipantIds.has(resultId)
   }
 
+  // Fusiona pagos guardados con participantes nuevos que no estaban al momento del save
+  const effectivePayments = useMemo(() => {
+    if (!savedData) return null
+    return results
+      .filter(r => !selfParticipantIds.has(r.id))
+      .map(r => {
+        const amountDue = Math.round(r.total)
+        const existing = savedData.payments.find(p => p.participantId === r.id)
+        return existing
+          ? { ...existing, amountDue }
+          : { participantId: r.id, name: r.name, amountDue, amountPaid: amountDue, isPaid: false }
+      })
+  }, [savedData, results, selfParticipantIds])
+
   const hasResults = subtotal > 0 && results.length > 0
   const isSaved = savedData !== null
 
@@ -210,12 +224,21 @@ export function CostSplitterDialog({
   // ── Payments ─────────────────────────────────────────────────────────────────
 
   function handleTogglePaid(participantId: string, currentIsPaid: boolean, amountDue: number) {
-    updatePayment(participantId, { isPaid: !currentIsPaid, amountPaid: amountDue })
+    const result = results.find(r => r.id === participantId)
+    const defaultEntry: ParticipantPayment | undefined = result
+      ? { participantId, name: result.name, amountDue, amountPaid: amountDue, isPaid: false }
+      : undefined
+    updatePayment(participantId, { isPaid: !currentIsPaid, amountPaid: amountDue }, defaultEntry)
   }
 
   function handleAmountPaidChange(participantId: string, raw: string) {
     const val = parseInt(raw, 10)
-    updatePayment(participantId, { amountPaid: isNaN(val) || val < 0 ? 0 : val })
+    const amount = isNaN(val) || val < 0 ? 0 : val
+    const result = results.find(r => r.id === participantId)
+    const defaultEntry: ParticipantPayment | undefined = result
+      ? { participantId, name: result.name, amountDue: Math.round(result.total), amountPaid: amount, isPaid: false }
+      : undefined
+    updatePayment(participantId, { amountPaid: amount }, defaultEntry)
   }
 
   // ── Group WhatsApp ────────────────────────────────────────────────────────────
@@ -279,15 +302,13 @@ export function CostSplitterDialog({
       results.reduce((s, r) => s + roundUp500(r.total), 0),
     ])
 
-    const payableSaved = (savedData?.payments ?? []).filter(p => !selfParticipantIds.has(p.participantId))
+    const payableSaved = effectivePayments ?? []
     if (payableSaved.length) {
       rows.push([], ['Estado de pagos'], ['Participante', 'Debe (Gs.)', 'Pagó (Gs.)', 'Diferencia (Gs.)', 'Estado'])
       for (const p of payableSaved) {
-        const currentResult = results.find(r => r.id === p.participantId)
-        const amountDue = currentResult ? Math.round(currentResult.total) : p.amountDue
         const effectivePaid = p.isPaid ? p.amountPaid : 0
-        const diff = p.isPaid ? effectivePaid - amountDue : 0
-        rows.push([p.name, amountDue, effectivePaid, diff, p.isPaid ? 'Pagado' : 'Pendiente'])
+        const diff = p.isPaid ? effectivePaid - p.amountDue : 0
+        rows.push([p.name, p.amountDue, effectivePaid, diff, p.isPaid ? 'Pagado' : 'Pendiente'])
       }
     }
 
@@ -456,7 +477,7 @@ export function CostSplitterDialog({
                 const waUrl = phone
                   ? `https://wa.me/${toWaPhone(phone)}?text=${encodeURIComponent(buildPersonalMessage(sex, drinksAlcohol, rounded))}`
                   : null
-                const payment = self ? null : (savedData?.payments.find(p => p.participantId === r.id) ?? null)
+                const payment = self ? null : (effectivePayments?.find(p => p.participantId === r.id) ?? null)
                 return (
                   <ParticipantCostCard
                     key={r.id}
@@ -473,7 +494,7 @@ export function CostSplitterDialog({
               })}
             </div>
 
-            {isSaved && savedData && <PaymentSummary payments={savedData.payments} />}
+            {isSaved && effectivePayments && <PaymentSummary payments={effectivePayments} />}
 
             <div className="grid grid-cols-2 gap-3">
               <Button onClick={handleShareWhatsApp} className="gap-2">

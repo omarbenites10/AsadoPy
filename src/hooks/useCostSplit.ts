@@ -32,21 +32,18 @@ export function useCostSplit(asadoId: string | null) {
   )
 
   const updatePayment = useCallback(
-    (participantId: string, update: Partial<ParticipantPayment>) => {
+    (participantId: string, update: Partial<ParticipantPayment>, defaultEntry?: ParticipantPayment) => {
       if (!asadoId) return
       setStore(prev => {
         const split = prev[asadoId]
         if (!split) return prev
-        return {
-          ...prev,
-          [asadoId]: {
-            ...split,
-            payments: split.payments.map(p =>
-              p.participantId === participantId ? { ...p, ...update } : p
-            ),
-            updatedAt: Date.now(),
-          },
-        }
+        const exists = split.payments.some(p => p.participantId === participantId)
+        const payments = exists
+          ? split.payments.map(p => p.participantId === participantId ? { ...p, ...update } : p)
+          : defaultEntry
+            ? [...split.payments, { ...defaultEntry, ...update }]
+            : split.payments
+        return { ...prev, [asadoId]: { ...split, payments, updatedAt: Date.now() } }
       })
     },
     [asadoId, setStore]
