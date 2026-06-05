@@ -120,8 +120,13 @@ export function CostSplitterDialog({
     [enrichedParticipants, config, prices, discounts]
   )
 
+  const selfParticipantIds = useMemo(
+    () => new Set(enrichedParticipants.filter(p => p.isSelf).map(p => p.id)),
+    [enrichedParticipants]
+  )
+
   function isParticipantSelf(resultId: string): boolean {
-    return enrichedParticipants.find(p => p.id === resultId)?.isSelf ?? false
+    return selfParticipantIds.has(resultId)
   }
 
   const hasResults = subtotal > 0 && results.length > 0
@@ -274,16 +279,15 @@ export function CostSplitterDialog({
       results.reduce((s, r) => s + roundUp500(r.total), 0),
     ])
 
-    const payableSaved = (savedData?.payments ?? []).filter(p => {
-      const r = results.find(r => r.id === p.participantId)
-      return r ? !isParticipantSelf(r.id) : true
-    })
+    const payableSaved = (savedData?.payments ?? []).filter(p => !selfParticipantIds.has(p.participantId))
     if (payableSaved.length) {
       rows.push([], ['Estado de pagos'], ['Participante', 'Debe (Gs.)', 'Pagó (Gs.)', 'Diferencia (Gs.)', 'Estado'])
       for (const p of payableSaved) {
         const currentResult = results.find(r => r.id === p.participantId)
         const amountDue = currentResult ? Math.round(currentResult.total) : p.amountDue
-        rows.push([p.name, amountDue, p.amountPaid, p.amountPaid - amountDue, p.isPaid ? 'Pagado' : 'Pendiente'])
+        const effectivePaid = p.isPaid ? p.amountPaid : 0
+        const diff = p.isPaid ? effectivePaid - amountDue : 0
+        rows.push([p.name, amountDue, effectivePaid, diff, p.isPaid ? 'Pagado' : 'Pendiente'])
       }
     }
 
