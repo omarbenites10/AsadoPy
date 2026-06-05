@@ -42,6 +42,7 @@ export interface StepShoppingListProps {
   participants: Participant[]
   config: ConsumptionConfig
   asadoName?: string
+  asadoId?: string
   onBack: () => void
   onReset: () => void
   onSave: () => void
@@ -59,6 +60,7 @@ export function StepShoppingList({
   participants,
   config,
   asadoName,
+  asadoId,
   onBack,
   onReset,
   onSave,
@@ -325,6 +327,7 @@ export function StepShoppingList({
         config={config}
         list={list}
         asadoName={asadoName}
+        asadoId={asadoId}
       />
 
       {/* Navigation + save/finish */}

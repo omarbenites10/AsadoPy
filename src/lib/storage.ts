@@ -4,6 +4,7 @@ const STORAGE_KEYS = {
   CONSUMPTION_CONFIG: 'asadopy_consumption_config',
   ASADOS: 'asadopy_asados',
   CURRENT_ASADO_ID: 'asadopy_current_asado_id',
+  COST_SPLITS: 'asadopy_cost_splits',
 } as const
 
 export function storageGet<T>(key: string, fallback: T): T {

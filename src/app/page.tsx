@@ -248,6 +248,7 @@ export default function HomePage() {
               participants={participants}
               config={config}
               asadoName={currentAsado?.name}
+              asadoId={currentAsadoId ?? undefined}
               onBack={() => !isFinished && handleStepChange('configuracion')}
               onReset={handleReset}
               onSave={() => setSaveDialogOpen(true)}

@@ -30,6 +30,23 @@ export interface Discount {
 
 export type ParticipantCost = { id: string; name: string; total: number } & ItemPrices
 
+export interface ParticipantPayment {
+  participantId: string
+  name: string
+  amountDue: number
+  amountPaid: number
+  isPaid: boolean
+}
+
+export interface SavedCostSplit {
+  asadoId: string
+  prices: ItemPrices
+  discounts: Discount[]
+  payments: ParticipantPayment[]
+  savedAt: number
+  updatedAt: number
+}
+
 export function calculateCostSplit(
   participants: Participant[],
   config: ConsumptionConfig,
