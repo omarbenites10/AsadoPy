@@ -22,12 +22,19 @@ export const EMPTY_PRICES: ItemPrices = {
   sopaParaguaya: 0, limon: 0, bebidasSinAlcohol: 0, mbeju: 0,
 }
 
+export interface Discount {
+  id: string
+  label: string
+  amount: number  // negative = descuento, positive = cargo adicional
+}
+
 export type ParticipantCost = { id: string; name: string; total: number } & ItemPrices
 
 export function calculateCostSplit(
   participants: Participant[],
   config: ConsumptionConfig,
   prices: ItemPrices,
+  discounts: Discount[] = [],
 ): ParticipantCost[] {
   const n = participants.length
   if (n === 0) return []
@@ -39,23 +46,30 @@ export function calculateCostSplit(
   const totalChorizoG = participants.reduce((s, p) => s + config.chorizo[p.sex], 0)
   const totalBeerL = drinkers.reduce((s, p) => s + ALCOHOL_LEVEL_LITERS[p.alcoholLevel], 0)
 
+  // Discount factor applied proportionally to every item and every participant
+  const subtotal = Object.values(prices).reduce((s, v) => s + v, 0)
+  const totalDiscounts = discounts.reduce((s, d) => s + d.amount, 0)
+  const discountFactor = subtotal > 0 ? (subtotal + totalDiscounts) / subtotal : 1
+
   const each = 1 / n
 
   return participants.map(p => {
     const isDrinker = p.drinksAlcohol && p.sex !== 'nino'
 
-    const carne = totalCarneG > 0 ? prices.carne * config.carne[p.sex] / totalCarneG : 0
-    const chorizo = totalChorizoG > 0 ? prices.chorizo * config.chorizo[p.sex] / totalChorizoG : 0
-    const cerveza = isDrinker && totalBeerL > 0 ? prices.cerveza * ALCOHOL_LEVEL_LITERS[p.alcoholLevel] / totalBeerL : 0
-    const hielo = isDrinker && totalBeerL > 0 ? prices.hielo * ALCOHOL_LEVEL_LITERS[p.alcoholLevel] / totalBeerL : 0
-    const bebidasSinAlcohol = !isDrinker && nonDrinkers.length > 0 ? prices.bebidasSinAlcohol / nonDrinkers.length : 0
-    const mandioca = prices.mandioca * each
-    const pan = prices.pan * each
-    const carbon = prices.carbon * each
-    const panDeAjo = prices.panDeAjo * each
-    const sopaParaguaya = prices.sopaParaguaya * each
-    const limon = prices.limon * each
-    const mbeju = prices.mbeju * each
+    const apply = (v: number) => v * discountFactor
+
+    const carne = apply(totalCarneG > 0 ? prices.carne * config.carne[p.sex] / totalCarneG : 0)
+    const chorizo = apply(totalChorizoG > 0 ? prices.chorizo * config.chorizo[p.sex] / totalChorizoG : 0)
+    const cerveza = apply(isDrinker && totalBeerL > 0 ? prices.cerveza * ALCOHOL_LEVEL_LITERS[p.alcoholLevel] / totalBeerL : 0)
+    const hielo = apply(isDrinker && totalBeerL > 0 ? prices.hielo * ALCOHOL_LEVEL_LITERS[p.alcoholLevel] / totalBeerL : 0)
+    const bebidasSinAlcohol = apply(!isDrinker && nonDrinkers.length > 0 ? prices.bebidasSinAlcohol / nonDrinkers.length : 0)
+    const mandioca = apply(prices.mandioca * each)
+    const pan = apply(prices.pan * each)
+    const carbon = apply(prices.carbon * each)
+    const panDeAjo = apply(prices.panDeAjo * each)
+    const sopaParaguaya = apply(prices.sopaParaguaya * each)
+    const limon = apply(prices.limon * each)
+    const mbeju = apply(prices.mbeju * each)
 
     const total = carne + chorizo + cerveza + hielo + bebidasSinAlcohol
       + mandioca + pan + carbon + panDeAjo + sopaParaguaya + limon + mbeju
