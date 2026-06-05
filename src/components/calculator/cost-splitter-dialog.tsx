@@ -9,10 +9,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { calculateCostSplit, EMPTY_PRICES } from '@/lib/cost-split'
 import type { ItemPrices, Discount, ParticipantCost, ParticipantPayment } from '@/lib/cost-split'
-import type { Participant, ConsumptionConfig, ShoppingList } from '@/types'
+import type { Participant, ConsumptionConfig, ShoppingList, Sex } from '@/types'
 import { WHATSAPP_NUMBER } from '@/types'
 import { generateId } from '@/lib/utils'
 import { useCostSplit } from '@/hooks/useCostSplit'
+import { useContacts } from '@/hooks/useContacts'
 import { toast } from '@/hooks/useToast'
 import { cn } from '@/lib/utils'
 
@@ -35,6 +36,29 @@ function fmt(n: number): string {
   return Math.round(n).toLocaleString('es-PY')
 }
 
+function roundUp500(amount: number): number {
+  return Math.ceil(amount / 500) * 500
+}
+
+function toWaPhone(raw: string): string {
+  const digits = raw.replace(/\D/g, '')
+  if (digits.startsWith('595')) return digits
+  if (digits.startsWith('0')) return '595' + digits.slice(1)
+  return '595' + digits
+}
+
+function buildPersonalMessage(sex: Sex, drinksAlcohol: boolean, rounded: number): string {
+  const amount = rounded.toLocaleString('es-PY')
+  if (sex === 'mujer') {
+    return drinksAlcohol
+      ? `Hola queridaa, me podrias transferir ${amount}gs porfis. Es para el asado y la birra`
+      : `Hola queridaa, me podrias transferir ${amount}gs porfis. Es para el asado`
+  }
+  return drinksAlcohol
+    ? `Hola pai, me podrias transferir ${amount}gs porfis. Es para el asado y la birra`
+    : `Hola pai, me podrias transferir ${amount}gs porfis. Es para el asado`
+}
+
 interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -49,12 +73,12 @@ export function CostSplitterDialog({
   open, onOpenChange, participants, config, list, asadoName, asadoId,
 }: Props) {
   const { data: savedData, save, updatePayment, remove } = useCostSplit(asadoId ?? null)
+  const { contacts } = useContacts()
 
   const [prices, setPrices] = useState<ItemPrices>(EMPTY_PRICES)
   const [discounts, setDiscounts] = useState<Discount[]>([])
   const initializedRef = useRef<string | undefined>(undefined)
 
-  // Load saved data each time the dialog opens for a (new) asadoId
   useEffect(() => {
     if (!open) { initializedRef.current = undefined; return }
     if (initializedRef.current === asadoId) return
@@ -66,7 +90,6 @@ export function CostSplitterDialog({
       setPrices(EMPTY_PRICES)
       setDiscounts([])
     }
-    // savedData intentionally omitted — we only want to init on open/asadoId change
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, asadoId])
 
@@ -88,14 +111,27 @@ export function CostSplitterDialog({
   const hasResults = subtotal > 0 && results.length > 0
   const isSaved = savedData !== null
 
-  // ── Prices ──────────────────────────────────────────────────────────────────
+  // ── Phone lookup ─────────────────────────────────────────────────────────────
+
+  function getParticipantPhone(resultId: string): string | undefined {
+    const p = participants.find(pt => pt.id === resultId)
+    if (!p?.contactId) return undefined
+    return contacts.find(c => c.id === p.contactId)?.phone || undefined
+  }
+
+  function getParticipantMeta(resultId: string): { sex: Sex; drinksAlcohol: boolean } {
+    const p = participants.find(pt => pt.id === resultId)
+    return { sex: p?.sex ?? 'hombre', drinksAlcohol: p?.drinksAlcohol ?? false }
+  }
+
+  // ── Prices ───────────────────────────────────────────────────────────────────
 
   function handlePriceChange(key: keyof ItemPrices, raw: string) {
     const val = parseInt(raw, 10)
     setPrices(prev => ({ ...prev, [key]: isNaN(val) || val < 0 ? 0 : val }))
   }
 
-  // ── Discounts ────────────────────────────────────────────────────────────────
+  // ── Discounts ─────────────────────────────────────────────────────────────────
 
   function addDiscount() {
     setDiscounts(prev => [...prev, { id: generateId(), label: '', amount: 0 }])
@@ -114,7 +150,7 @@ export function CostSplitterDialog({
     setDiscounts(prev => prev.filter(d => d.id !== id))
   }
 
-  // ── Save / Delete ────────────────────────────────────────────────────────────
+  // ── Save / Delete ─────────────────────────────────────────────────────────────
 
   function handleSave() {
     if (!asadoId || !hasResults) return
@@ -140,10 +176,7 @@ export function CostSplitterDialog({
   // ── Payments ─────────────────────────────────────────────────────────────────
 
   function handleTogglePaid(participantId: string, currentIsPaid: boolean, amountDue: number) {
-    updatePayment(participantId, {
-      isPaid: !currentIsPaid,
-      amountPaid: amountDue,
-    })
+    updatePayment(participantId, { isPaid: !currentIsPaid, amountPaid: amountDue })
   }
 
   function handleAmountPaidChange(participantId: string, raw: string) {
@@ -151,9 +184,9 @@ export function CostSplitterDialog({
     updatePayment(participantId, { amountPaid: isNaN(val) || val < 0 ? 0 : val })
   }
 
-  // ── Share / Export ───────────────────────────────────────────────────────────
+  // ── Group WhatsApp ────────────────────────────────────────────────────────────
 
-  function buildWhatsAppText(): string {
+  function buildGroupWhatsAppText(): string {
     const title = asadoName ?? 'Asado'
     const lines = [`💰 Distribución de costos - ${title}`, '']
     for (const r of results) {
@@ -164,9 +197,11 @@ export function CostSplitterDialog({
   }
 
   function handleShareWhatsApp() {
-    const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(buildWhatsAppText())}`
+    const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(buildGroupWhatsAppText())}`
     window.open(url, '_blank', 'noopener,noreferrer')
   }
+
+  // ── Excel ─────────────────────────────────────────────────────────────────────
 
   async function handleExportExcel() {
     if (!hasResults) return
@@ -188,40 +223,37 @@ export function CostSplitterDialog({
 
     if (discounts.length > 0) {
       rows.push(['Subtotal', '', fmt(subtotal)])
-      for (const d of discounts) {
-        rows.push([d.label || 'Descuento', '', fmt(d.amount)])
-      }
+      for (const d of discounts) rows.push([d.label || 'Descuento', '', fmt(d.amount)])
       rows.push(['Total', '', fmt(finalTotal)], [])
     }
 
-    rows.push(['Participante', ...visibleFields.map(f => f.label), 'Total (Gs.)'])
+    rows.push(['Participante', ...visibleFields.map(f => f.label), 'Total (Gs.)', 'Se solicita (Gs.)'])
 
     for (const r of results) {
       rows.push([
         r.name,
         ...visibleFields.map(f => Math.round(r[f.key] as number)),
         Math.round(r.total),
+        roundUp500(r.total),
       ])
     }
 
     rows.push([
       'TOTAL',
-      ...visibleFields.map(f =>
-        Math.round(results.reduce((s, r) => s + (r[f.key] as number), 0))
-      ),
+      ...visibleFields.map(f => Math.round(results.reduce((s, r) => s + (r[f.key] as number), 0))),
       Math.round(results.reduce((s, r) => s + r.total, 0)),
+      results.reduce((s, r) => s + roundUp500(r.total), 0),
     ])
 
     if (savedData?.payments.length) {
       rows.push([], ['Estado de pagos'], ['Participante', 'Debe (Gs.)', 'Pagó (Gs.)', 'Diferencia (Gs.)', 'Estado'])
       for (const p of savedData.payments) {
-        const diff = p.amountPaid - p.amountDue
-        rows.push([p.name, p.amountDue, p.amountPaid, diff, p.isPaid ? 'Pagado' : 'Pendiente'])
+        rows.push([p.name, p.amountDue, p.amountPaid, p.amountPaid - p.amountDue, p.isPaid ? 'Pagado' : 'Pendiente'])
       }
     }
 
     const ws = XLSX.utils.aoa_to_sheet(rows)
-    ws['!cols'] = [{ wch: 22 }, ...visibleFields.map(() => ({ wch: 14 })), { wch: 14 }]
+    ws['!cols'] = [{ wch: 22 }, ...visibleFields.map(() => ({ wch: 14 })), { wch: 14 }, { wch: 16 }]
     ws['!merges'] = [
       { s: { r: 0, c: 0 }, e: { r: 0, c: ncols - 1 } },
       { s: { r: 1, c: 0 }, e: { r: 1, c: ncols - 1 } },
@@ -232,6 +264,8 @@ export function CostSplitterDialog({
     XLSX.utils.book_append_sheet(wb, ws, 'Distribución de Costos')
     XLSX.writeFile(wb, `AsadoPy - Costos - ${title}.xlsx`)
   }
+
+  // ── Render ────────────────────────────────────────────────────────────────────
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -250,7 +284,7 @@ export function CostSplitterDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {/* ── Price inputs ─────────────────────────────────────────── */}
+        {/* ── Price inputs ─────────────────────────────────────── */}
         <div className="flex flex-col gap-2.5">
           {visibleFields.map(({ key, icon, label }) => (
             <div key={key} className="flex items-center gap-2">
@@ -272,7 +306,7 @@ export function CostSplitterDialog({
           ))}
         </div>
 
-        {/* ── Discounts ────────────────────────────────────────────── */}
+        {/* ── Discounts ────────────────────────────────────────── */}
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <span className="text-sm font-semibold">Descuentos / Ajustes</span>
@@ -317,7 +351,7 @@ export function CostSplitterDialog({
           ))}
         </div>
 
-        {/* ── Ticket summary ────────────────────────────────────────── */}
+        {/* ── Ticket summary ───────────────────────────────────── */}
         {(subtotal > 0 || discounts.some(d => d.amount !== 0)) && (
           <div className="rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] px-4 py-3 flex flex-col gap-1.5">
             <div className="flex items-center justify-between text-sm">
@@ -343,7 +377,7 @@ export function CostSplitterDialog({
           </div>
         )}
 
-        {/* ── Save / Delete ─────────────────────────────────────────── */}
+        {/* ── Save / Delete ────────────────────────────────────── */}
         {asadoId && hasResults && (
           <div className="flex gap-2">
             <Button onClick={handleSave} className="flex-1 gap-2">
@@ -363,7 +397,7 @@ export function CostSplitterDialog({
           </div>
         )}
 
-        {/* ── Distribution + payment tracking ───────────────────────── */}
+        {/* ── Distribution + payment ───────────────────────────── */}
         {hasResults && (
           <>
             <div className="flex items-center gap-2">
@@ -376,12 +410,20 @@ export function CostSplitterDialog({
 
             <div className="flex flex-col gap-2.5">
               {results.map(r => {
+                const { sex, drinksAlcohol } = getParticipantMeta(r.id)
+                const phone = getParticipantPhone(r.id)
+                const rounded = roundUp500(r.total)
+                const waUrl = phone
+                  ? `https://wa.me/${toWaPhone(phone)}?text=${encodeURIComponent(buildPersonalMessage(sex, drinksAlcohol, rounded))}`
+                  : null
                 const payment = savedData?.payments.find(p => p.participantId === r.id) ?? null
                 return (
                   <ParticipantCostCard
                     key={r.id}
                     result={r}
                     visibleFields={visibleFields}
+                    rounded={rounded}
+                    waUrl={waUrl}
                     payment={payment}
                     onTogglePaid={handleTogglePaid}
                     onAmountPaidChange={handleAmountPaidChange}
@@ -390,10 +432,7 @@ export function CostSplitterDialog({
               })}
             </div>
 
-            {/* Payment summary */}
-            {isSaved && savedData && (
-              <PaymentSummary payments={savedData.payments} />
-            )}
+            {isSaved && savedData && <PaymentSummary payments={savedData.payments} />}
 
             <div className="grid grid-cols-2 gap-3">
               <Button onClick={handleShareWhatsApp} className="gap-2">
@@ -421,12 +460,16 @@ export function CostSplitterDialog({
 function ParticipantCostCard({
   result,
   visibleFields,
+  rounded,
+  waUrl,
   payment,
   onTogglePaid,
   onAmountPaidChange,
 }: {
   result: ParticipantCost
   visibleFields: { key: keyof ItemPrices; icon: string; label: string }[]
+  rounded: number
+  waUrl: string | null
   payment: ParticipantPayment | null
   onTogglePaid: (id: string, current: boolean, due: number) => void
   onAmountPaidChange: (id: string, raw: string) => void
@@ -437,8 +480,8 @@ function ParticipantCostCard({
   return (
     <div className="rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card-bg))] p-3.5">
       {/* Header */}
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2 min-w-0">
+      <div className="flex items-start justify-between mb-2">
+        <div className="flex items-center gap-2 min-w-0 flex-1 pt-0.5">
           {payment && (
             payment.isPaid
               ? <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
@@ -446,9 +489,27 @@ function ParticipantCostCard({
           )}
           <span className="font-semibold text-sm truncate">{result.name}</span>
         </div>
-        <span className="font-bold text-base text-[hsl(var(--primary))] tabular-nums shrink-0 ml-2">
-          Gs. {Math.round(result.total).toLocaleString('es-PY')}
-        </span>
+
+        {/* Amount + WhatsApp pill */}
+        <div className="flex flex-col items-end gap-1 shrink-0 ml-3">
+          <span className="font-bold text-base text-[hsl(var(--primary))] tabular-nums">
+            Gs. {Math.round(result.total).toLocaleString('es-PY')}
+          </span>
+          {waUrl ? (
+            <a
+              href={waUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 bg-[#25D366] hover:bg-[#1ebe5d] text-white text-xs font-medium px-2 py-0.5 rounded-full transition-colors tabular-nums"
+              aria-label={`Enviar WhatsApp a ${result.name}`}
+            >
+              <MessageCircle className="h-3 w-3 shrink-0" />
+              {rounded.toLocaleString('es-PY')}
+            </a>
+          ) : (
+            <span className="text-xs text-[hsl(var(--muted-fg))] italic">Sin teléfono</span>
+          )}
+        </div>
       </div>
 
       {/* Breakdown */}
@@ -467,7 +528,7 @@ function ParticipantCostCard({
         })}
       </div>
 
-      {/* Payment row (only when data is saved) */}
+      {/* Payment row */}
       {payment && (
         <div className="border-t border-[hsl(var(--border))] mt-2 pt-2">
           <div className="flex items-center gap-2 flex-wrap">
@@ -528,7 +589,7 @@ function PaymentSummary({ payments }: { payments: ParticipantPayment[] }) {
             {paid.length} de {payments.length} pagaron
           </p>
           <p className="text-xs text-[hsl(var(--muted-fg))]">
-            Cobrado: Gs. {fmt(totalCollected)} / Gs. {fmt(totalDue)}
+            Cobrado: Gs. {Math.round(totalCollected).toLocaleString('es-PY')} / Gs. {Math.round(totalDue).toLocaleString('es-PY')}
           </p>
         </div>
         {totalCollected !== totalDue && paid.length > 0 && (
@@ -537,7 +598,7 @@ function PaymentSummary({ payments }: { payments: ParticipantPayment[] }) {
             totalCollected - totalDue > 0 ? 'text-emerald-600' : 'text-red-500'
           )}>
             {totalCollected - totalDue > 0 ? '+' : ''}
-            {fmt(totalCollected - totalDue)}
+            {Math.round(totalCollected - totalDue).toLocaleString('es-PY')}
           </span>
         )}
       </div>
