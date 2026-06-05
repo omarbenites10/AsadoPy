@@ -274,10 +274,16 @@ export function CostSplitterDialog({
       results.reduce((s, r) => s + roundUp500(r.total), 0),
     ])
 
-    if (savedData?.payments.length) {
+    const payableSaved = (savedData?.payments ?? []).filter(p => {
+      const r = results.find(r => r.id === p.participantId)
+      return r ? !isParticipantSelf(r.id) : true
+    })
+    if (payableSaved.length) {
       rows.push([], ['Estado de pagos'], ['Participante', 'Debe (Gs.)', 'Pagó (Gs.)', 'Diferencia (Gs.)', 'Estado'])
-      for (const p of savedData.payments) {
-        rows.push([p.name, p.amountDue, p.amountPaid, p.amountPaid - p.amountDue, p.isPaid ? 'Pagado' : 'Pendiente'])
+      for (const p of payableSaved) {
+        const currentResult = results.find(r => r.id === p.participantId)
+        const amountDue = currentResult ? Math.round(currentResult.total) : p.amountDue
+        rows.push([p.name, amountDue, p.amountPaid, p.amountPaid - amountDue, p.isPaid ? 'Pagado' : 'Pendiente'])
       }
     }
 
