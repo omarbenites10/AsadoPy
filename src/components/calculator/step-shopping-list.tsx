@@ -1,12 +1,14 @@
 'use client'
 
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   ChevronLeft, RefreshCw, ShoppingCart, Save,
-  CheckCircle, MessageCircle, FileSpreadsheet,
+  CheckCircle, MessageCircle, FileSpreadsheet, Calculator,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import type { ShoppingList, Participant } from '@/types'
+import { CostSplitterDialog } from './cost-splitter-dialog'
+import type { ShoppingList, Participant, ConsumptionConfig } from '@/types'
 import { WHATSAPP_NUMBER, SEX_LABELS, ALCOHOL_LEVEL_LABELS, ALCOHOL_LEVEL_LITERS } from '@/types'
 
 interface ShoppingItemProps {
@@ -38,6 +40,7 @@ function ShoppingItem({ icon, label, value, subValue, delay = 0 }: ShoppingItemP
 export interface StepShoppingListProps {
   list: ShoppingList
   participants: Participant[]
+  config: ConsumptionConfig
   asadoName?: string
   onBack: () => void
   onReset: () => void
@@ -54,6 +57,7 @@ function formatKg(kg: number): string {
 export function StepShoppingList({
   list,
   participants,
+  config,
   asadoName,
   onBack,
   onReset,
@@ -62,6 +66,7 @@ export function StepShoppingList({
   isSaved = false,
   isFinished = false,
 }: StepShoppingListProps) {
+  const [costSplitterOpen, setCostSplitterOpen] = useState(false)
   const {
     carne, chorizo, cerveza, mandioca, pan, carbon, panDeAjo,
     sopaParaguaya, hielo, limon, bebidasSinAlcohol, mbeju,
@@ -303,6 +308,24 @@ export function StepShoppingList({
           <FileSpreadsheet className="h-4 w-4" /> Excel
         </Button>
       </div>
+
+      {/* Cost distribution */}
+      <Button
+        variant="outline"
+        onClick={() => setCostSplitterOpen(true)}
+        className="gap-2 no-print"
+      >
+        <Calculator className="h-4 w-4" /> Distribución de costos
+      </Button>
+
+      <CostSplitterDialog
+        open={costSplitterOpen}
+        onOpenChange={setCostSplitterOpen}
+        participants={participants}
+        config={config}
+        list={list}
+        asadoName={asadoName}
+      />
 
       {/* Navigation + save/finish */}
       {isFinished ? (

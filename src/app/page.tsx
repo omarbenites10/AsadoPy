@@ -246,6 +246,7 @@ export default function HomePage() {
             <StepShoppingList
               list={shoppingList}
               participants={participants}
+              config={config}
               asadoName={currentAsado?.name}
               onBack={() => !isFinished && handleStepChange('configuracion')}
               onReset={handleReset}
