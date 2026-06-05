@@ -245,6 +245,7 @@ export default function HomePage() {
           <motion.div key="lista" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }}>
             <StepShoppingList
               list={shoppingList}
+              participants={participants}
               asadoName={currentAsado?.name}
               onBack={() => !isFinished && handleStepChange('configuracion')}
               onReset={handleReset}

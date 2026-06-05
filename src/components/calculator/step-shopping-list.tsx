@@ -6,8 +6,8 @@ import {
   CheckCircle, MessageCircle, FileSpreadsheet,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import type { ShoppingList } from '@/types'
-import { WHATSAPP_NUMBER } from '@/types'
+import type { ShoppingList, Participant } from '@/types'
+import { WHATSAPP_NUMBER, SEX_LABELS, ALCOHOL_LEVEL_LABELS, ALCOHOL_LEVEL_LITERS } from '@/types'
 
 interface ShoppingItemProps {
   icon: string
@@ -37,6 +37,7 @@ function ShoppingItem({ icon, label, value, subValue, delay = 0 }: ShoppingItemP
 
 export interface StepShoppingListProps {
   list: ShoppingList
+  participants: Participant[]
   asadoName?: string
   onBack: () => void
   onReset: () => void
@@ -52,6 +53,7 @@ function formatKg(kg: number): string {
 
 export function StepShoppingList({
   list,
+  participants,
   asadoName,
   onBack,
   onReset,
@@ -179,8 +181,39 @@ export function StepShoppingList({
       { s: { r: 4, c: 0 }, e: { r: 4, c: 2 } },
     ]
 
+    // ── Participants sheet ────────────────────────────────────────────────────
+    const pRows: Row[] = [
+      ['Lista de Participantes'],
+      [title],
+      [date],
+      [],
+      [`Total: ${participants.length} persona${participants.length !== 1 ? 's' : ''}`],
+      [],
+      ['Nombre', 'Categoría', 'Alcohol', 'Nivel de consumo', 'Litros estimados'],
+    ]
+    for (const p of participants) {
+      const drinks = p.drinksAlcohol && p.sex !== 'nino'
+      pRows.push([
+        p.name,
+        SEX_LABELS[p.sex],
+        drinks ? 'Sí' : 'No',
+        drinks ? ALCOHOL_LEVEL_LABELS[p.alcoholLevel] : '-',
+        drinks ? ALCOHOL_LEVEL_LITERS[p.alcoholLevel] : '-',
+      ])
+    }
+
+    const wsP = XLSX.utils.aoa_to_sheet(pRows)
+    wsP['!cols'] = [{ wch: 24 }, { wch: 12 }, { wch: 10 }, { wch: 18 }, { wch: 18 }]
+    wsP['!merges'] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 4 } },
+      { s: { r: 2, c: 0 }, e: { r: 2, c: 4 } },
+      { s: { r: 4, c: 0 }, e: { r: 4, c: 4 } },
+    ]
+
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Lista de Compras')
+    XLSX.utils.book_append_sheet(wb, wsP, 'Participantes')
     XLSX.writeFile(wb, `AsadoPy - ${title}.xlsx`)
   }
 

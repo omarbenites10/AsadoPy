@@ -24,7 +24,10 @@
       "Bash(gh auth *)",
       "Bash(git branch *)",
       "Bash(git remote *)",
-      "PowerShell(New-Item -ItemType Directory -Force \"D:\\\\Omar\\\\Proyectos\\\\AsadoPy\\\\src\\\\components\\\\asados\")"
+      "PowerShell(New-Item -ItemType Directory -Force \"D:\\\\Omar\\\\Proyectos\\\\AsadoPy\\\\src\\\\components\\\\asados\")",
+      "PowerShell(New-Item -ItemType Directory -Force \"D:\\\\Omar\\\\Proyectos\\\\AsadoPy\\\\src\\\\components\\\\auth\")",
+      "PowerShell(\"ok\")",
+      "Bash(npx tsc *)"
     ],
     "additionalDirectories": [
       "D:\\Omar\\Proyectos\\asadopy-temp"
