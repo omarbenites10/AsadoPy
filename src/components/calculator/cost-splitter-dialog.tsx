@@ -115,8 +115,19 @@ export function CostSplitterDialog({
 
   function getParticipantPhone(resultId: string): string | undefined {
     const p = participants.find(pt => pt.id === resultId)
-    if (!p?.contactId) return undefined
-    return contacts.find(c => c.id === p.contactId)?.phone || undefined
+    if (!p) return undefined
+
+    // Primary: match by contactId
+    if (p.contactId) {
+      const phone = contacts.find(c => c.id === p.contactId)?.phone
+      if (phone) return phone
+    }
+
+    // Fallback: match by exact name (handles manually-added participants)
+    const byName = contacts.find(
+      c => c.name.trim().toLowerCase() === p.name.trim().toLowerCase()
+    )
+    return byName?.phone || undefined
   }
 
   function getParticipantMeta(resultId: string): { sex: Sex; drinksAlcohol: boolean } {
