@@ -155,4 +155,3 @@ export const CONTAINER_TYPE_LABELS: Record<ContainerType, string> = {
   otro: 'Otro',
 }
 
-export const WHATSAPP_NUMBER = '595984411295'

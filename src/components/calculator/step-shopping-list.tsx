@@ -9,7 +9,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { CostSplitterDialog } from './cost-splitter-dialog'
 import type { ShoppingList, Participant, ConsumptionConfig } from '@/types'
-import { WHATSAPP_NUMBER, SEX_LABELS, ALCOHOL_LEVEL_LABELS, ALCOHOL_LEVEL_LITERS } from '@/types'
+import { SEX_LABELS, ALCOHOL_LEVEL_LABELS, ALCOHOL_LEVEL_LITERS } from '@/types'
 
 interface ShoppingItemProps {
   icon: string
@@ -124,7 +124,7 @@ export function StepShoppingList({
   }
 
   function handleShareWhatsApp() {
-    const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(buildShareText())}`
+    const url = `https://wa.me/?text=${encodeURIComponent(buildShareText())}`
     window.open(url, '_blank', 'noopener,noreferrer')
   }
 

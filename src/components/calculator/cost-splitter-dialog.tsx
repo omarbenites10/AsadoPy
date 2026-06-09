@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import { calculateCostSplit, EMPTY_PRICES } from '@/lib/cost-split'
 import type { ItemPrices, Discount, ParticipantCost, ParticipantPayment } from '@/lib/cost-split'
 import type { Participant, ConsumptionConfig, ShoppingList, Sex } from '@/types'
-import { WHATSAPP_NUMBER } from '@/types'
+
 import { generateId } from '@/lib/utils'
 import { useCostSplit } from '@/hooks/useCostSplit'
 import { useContacts } from '@/hooks/useContacts'
@@ -254,7 +254,7 @@ export function CostSplitterDialog({
   }
 
   function handleShareWhatsApp() {
-    const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(buildGroupWhatsAppText())}`
+    const url = `https://wa.me/?text=${encodeURIComponent(buildGroupWhatsAppText())}`
     window.open(url, '_blank', 'noopener,noreferrer')
   }
 
